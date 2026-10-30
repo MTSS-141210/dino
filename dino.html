@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dino Aventura</title>
+  <meta name="theme-color" content="#030712">
+  <link rel="stylesheet" href="css/style.css/style.css">
+  <script src="js/indes.js" defer></script>
+</head>
+<body>
+  <div class="app-container">
+    <header>
+      <h1>DINO</h1>
+      <div class="header-actions">
+        <div id="game-score">0</div>
+        <button class="icon-button" id="btn-help-trigger" title="Como Jogar">?</button>
+        <button class="icon-button" id="btn-stats-trigger" title="Estatísticas">&#9646;&#9646;</button>
+      </div>
+    </header>
+
+    <div id="dino-container" class="dino-canvas-container">
+      <canvas id="game-canvas" width="800" height="400" aria-label="Dino Aventura" role="img"></canvas>
+      <div id="dino-hint" class="dino-hint">
+        <div class="dino-hint-title">Dino Aventura</div>
+        <div class="dino-hint-keys">
+          <div class="dino-hint-key"><span class="dino-hint-keys-group"><kbd>ESPAÇO</kbd><kbd>↑</kbd><kbd>W</kbd></span><span>Pular</span></div>
+          <div class="dino-hint-key"><span class="dino-hint-keys-group"><kbd>↓</kbd><kbd>S</kbd></span><span>Agachar</span></div>
+          <div class="dino-hint-key"><span class="dino-hint-keys-group"><kbd>←</kbd><kbd>→</kbd><kbd>A</kbd><kbd>D</kbd></span><span>Andar / virar</span></div>
+          <div class="dino-hint-key"><span class="dino-hint-keys-group"><kbd>X</kbd><kbd>J</kbd><kbd>K</kbd></span><span>Espada</span></div>
+          <div class="dino-hint-key"><span class="dino-hint-keys-group"><kbd>C</kbd><kbd>L</kbd></span><span>Escudo</span></div>
+          <div class="dino-hint-key"><span class="dino-hint-keys-group"><kbd>SHIFT</kbd><kbd>Z</kbd></span><span>Investida</span></div>
+        </div>
+        <div class="dino-hint-sub">Aperte <kbd>ESPAÇO</kbd> pra começar</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="game-modal" class="modal-overlay">
+    <div class="modal">
+      <h2>FIM DA JORNADA</h2>
+      <div class="stats-grid">
+        <div><b id="res-score">0</b><span>Pontos</span></div>
+        <div><b id="res-best">0</b><span>Recorde</span></div>
+        <div><b id="res-biome">—</b><span>Bioma</span></div>
+        <div><b id="res-bosses">0</b><span>Chefes</span></div>
+      </div>
+      <button id="btn-new-game-modal" class="btn">Correr de novo</button>
+      <p class="modal-hint">ou aperte <kbd>ESPAÇO</kbd></p>
+    </div>
+  </div>
+
+  <div id="help-modal" class="modal-overlay">
+    <div class="modal">
+      <h2>Como Jogar</h2>
+      <p>Corra por <strong>5 biomas</strong>, cada um com obstáculos próprios e um <strong>chefe</strong> no fim. <strong>Pule</strong> obstáculos baixos e <strong>agache</strong> dos altos. A <strong>espada</strong> derruba inimigos e fere os chefes (ande até eles). O <strong>escudo</strong> bloqueia golpes da frente mas gasta energia. A <strong>investida</strong> é invencível e atravessa o golpe que o escudo não segura. <strong>Coração</strong> cura, <strong>cristal</strong> dá energia. Os chefes telegrafam o golpe, aprendem seus hábitos e ficam tontos depois de certos ataques.</p>
+      <div class="help-keys-grid">
+        <div class="help-key-item"><kbd>ESPAÇO</kbd><kbd>↑</kbd><kbd>W</kbd><span>Pular</span></div>
+        <div class="help-key-item"><kbd>↓</kbd><kbd>S</kbd><span>Agachar (segurar)</span></div>
+        <div class="help-key-item"><kbd>←</kbd><kbd>→</kbd><kbd>A</kbd><kbd>D</kbd><span>Andar / virar o herói</span></div>
+        <div class="help-key-item"><kbd>X</kbd><kbd>J</kbd><kbd>K</kbd><span>Espada</span></div>
+        <div class="help-key-item"><kbd>C</kbd><kbd>L</kbd><span>Escudo (segurar)</span></div>
+        <div class="help-key-item"><kbd>SHIFT</kbd><kbd>Z</kbd><span>Investida</span></div>
+      </div>
+      <button class="btn" data-close>Entendido!</button>
+    </div>
+  </div>
+
+  <div id="stats-modal" class="modal-overlay">
+    <div class="modal">
+      <h2>Estatísticas</h2>
+      <div class="stats-grid">
+        <div><b id="stat-played">0</b><span>Corridas</span></div>
+        <div><b id="stat-best">0</b><span>Recorde</span></div>
+        <div><b id="stat-bosses">0</b><span>Chefes</span></div>
+      </div>
+      <button class="btn" data-close>Fechar</button>
+    </div>
+  </div>
+</body>
+</html>
