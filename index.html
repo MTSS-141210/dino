@@ -1,0 +1,98 @@
+h<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dino Aventura</title>
+  <meta name="theme-color" content="#030712">
+  <link rel="stylesheet" href="css/style.css/style.css">
+  <script src="js/index.js" defer></script>
+</head>
+<body>
+  <div class="app-container">
+    <header>
+      <h1>DINO</h1>
+      <div class="header-actions">
+        <div id="game-score">0</div>
+        <button class="icon-button" id="btn-help-trigger" title="Como Jogar">?</button>
+        <button class="icon-button" id="btn-stats-trigger" title="Estatísticas">&#9646;&#9646;</button>
+      </div>
+    </header>
+
+    <div id="dino-container" class="dino-canvas-container">
+      <canvas id="game-canvas" width="800" height="400" aria-label="Dino Aventura" role="img"></canvas>
+      <div id="dino-hint" class="dino-hint">
+        <div class="dino-hint-title">Dino Aventura</div>
+        <div class="dino-hint-keys">
+          <div class="dino-hint-key"><span class="dino-hint-keys-group"><kbd>W</kbd></span><span>Pular</span></div>
+          <div class="dino-hint-key"><span class="dino-hint-keys-group"><kbd>S</kbd></span><span>Agachar</span></div>
+          <div class="dino-hint-key"><span class="dino-hint-keys-group"><kbd>A</kbd><kbd>D</kbd></span><span>Andar / virar</span></div>
+          <div class="dino-hint-key"><span class="dino-hint-keys-group"><kbd>X</kbd></span><span>Espada</span></div>
+          <div class="dino-hint-key"><span class="dino-hint-keys-group"><kbd>V</kbd></span><span>Poder da espada</span></div>
+          <div class="dino-hint-key"><span class="dino-hint-keys-group"><kbd>C</kbd></span><span>Escudo</span></div>
+          <div class="dino-hint-key"><span class="dino-hint-keys-group"><kbd>SHIFT ESQ.</kbd><kbd>Z</kbd></span><span>Investida</span></div>
+          <div class="dino-hint-key"><span class="dino-hint-keys-group"><kbd>2</kbd></span><span>2 jogadores</span></div>
+        </div>
+        <div id="p2-hint-keys" class="dino-hint-player2">
+          <div class="dino-hint-player2-title">Jogador 2</div>
+          <div class="dino-hint-keys">
+            <div class="dino-hint-key"><span class="dino-hint-keys-group"><kbd>↑</kbd></span><span>Pular</span></div>
+            <div class="dino-hint-key"><span class="dino-hint-keys-group"><kbd>↓</kbd></span><span>Agachar</span></div>
+            <div class="dino-hint-key"><span class="dino-hint-keys-group"><kbd>←</kbd><kbd>→</kbd></span><span>Andar / virar</span></div>
+            <div class="dino-hint-key"><span class="dino-hint-keys-group"><kbd>K</kbd></span><span>Espada</span></div>
+            <div class="dino-hint-key"><span class="dino-hint-keys-group"><kbd>P</kbd></span><span>Poder da espada</span></div>
+            <div class="dino-hint-key"><span class="dino-hint-keys-group"><kbd>L</kbd></span><span>Escudo</span></div>
+            <div class="dino-hint-key"><span class="dino-hint-keys-group"><kbd>J</kbd><kbd>SHIFT DIR.</kbd></span><span>Investida</span></div>
+          </div>
+        </div>
+        <div class="dino-hint-sub">Aperte <kbd>ESPAÇO</kbd> pra começar</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="game-modal" class="modal-overlay">
+    <div class="modal">
+      <h2>FIM DA JORNADA</h2>
+      <div class="stats-grid">
+        <div><b id="res-score">0</b><span>Pontos</span></div>
+        <div><b id="res-best">0</b><span>Recorde</span></div>
+        <div><b id="res-biome">—</b><span>Bioma</span></div>
+        <div><b id="res-bosses">0</b><span>Chefes</span></div>
+      </div>
+      <button id="btn-new-game-modal" class="btn">Correr de novo</button>
+      <p class="modal-hint">ou aperte <kbd>ESPAÇO</kbd></p>
+    </div>
+  </div>
+
+  <div id="help-modal" class="modal-overlay">
+    <div class="modal">
+      <h2>Como Jogar</h2>
+      <p>Corra por <strong>5 biomas</strong>, cada um com obstáculos próprios e um <strong>chefe</strong> no fim. <strong>Pule</strong> obstáculos baixos e <strong>agache</strong> dos altos. Encontre seis espadas especiais pelo caminho: fogo incendeia, gelo congela, raio causa dano extra e dissipa projéteis, veneno causa dano contínuo, vento acelera e cristal cura e protege. Cada espada dura <strong>30 segundos</strong> e depois quebra. Pressione <kbd>V</kbd> para ativar o poder da espada (jogador 1) ou <kbd>P</kbd> (jogador 2); o poder tem recarga. Corações curam e cristais azuis dão energia. Cada chefe tem quatro ataques próprios, anunciados antes de acontecerem. Para jogar em <strong>dois jogadores</strong>, aperte <kbd>2</kbd>. O jogador 2 usa as setas para pular, agachar e mover; <kbd>K</kbd> ataca, <kbd>L</kbd> ativa o escudo e <kbd>J</kbd> dá a investida.</p>
+      <p class="boss-rules"><strong>Chefes:</strong> eles se movem pela arena e atacam dos dois lados quando estão longe dos cantos; o contato não causa dano. A cada 20 segundos ficam atordoados por 3 segundos e recebem 1,5x dano. Espadas especiais causam 1,6x o dano normal. Obstáculos não são destruídos pela espada, mas podem ser bloqueados pelo escudo. Ao derrotar um chefe, surgem duas orbes de vida e uma de energia.</p>
+      <div class="help-keys-grid">
+        <div class="help-key-item"><kbd>ESPAÇO</kbd><kbd>↑</kbd><kbd>W</kbd><span>Pular</span></div>
+        <div class="help-key-item"><kbd>↓</kbd><kbd>S</kbd><span>Agachar (segurar)</span></div>
+        <div class="help-key-item"><kbd>←</kbd><kbd>→</kbd><kbd>A</kbd><kbd>D</kbd><span>Andar / virar o herói</span></div>
+        <div class="help-key-item"><kbd>X</kbd><kbd>K</kbd><span>Espada</span></div>
+        <div class="help-key-item"><kbd>V</kbd><kbd>P</kbd><span>Poder da espada</span></div>
+        <div class="help-key-item"><kbd>C</kbd><kbd>L</kbd><span>Escudo (segurar)</span></div>
+        <div class="help-key-item"><kbd>SHIFT</kbd><kbd>Z</kbd><kbd>J</kbd><span>Investida</span></div>
+        <div class="help-key-item"><kbd>2</kbd><span>Modo 2 jogadores</span></div>
+      </div>
+      <button class="btn" data-close>Entendido!</button>
+    </div>
+  </div>
+
+  <div id="stats-modal" class="modal-overlay">
+    <div class="modal">
+      <h2>Estatísticas</h2>
+      <div class="stats-grid">
+        <div><b id="stat-played">0</b><span>Corridas</span></div>
+        <div><b id="stat-best">0</b><span>Recorde</span></div>
+        <div><b id="stat-bosses">0</b><span>Chefes</span></div>
+      </div>
+      <button class="btn" data-close>Fechar</button>
+    </div>
+  </div>
+</body>
+</html>
