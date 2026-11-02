@@ -277,7 +277,7 @@
     if (boss.stunClock > 0) boss.stunClock--;
     if (boss.stunTimer > 0) boss.stunTimer--;
     else if (boss.stunClock <= 0) {
-      boss.stunTimer = 180;
+      boss.stunTimer = 156;
       boss.stunClock = 1200;
       boss.s = 'stun'; boss.atk = null; boss.tm = 0;
       proj = proj.filter(p => p.friendly);
