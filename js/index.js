@@ -317,10 +317,8 @@
     const launch = (y, w, h, kind, color, speed = vx) => shot(boss.x + (boss.w - w) / 2, y, w, h, kind, color, speed);
     const rain = (kind, color, w, h, count = 2) => playerList().filter(p => p.hp > 0).forEach(p => {
       for (let i = 0; i < count; i++) {
-        const sourceX = boss.x + boss.w / 2 - w / 2;
         const targetX = p.x + (i - (count - 1) / 2) * 42;
-        const horizontalSpeed = Math.max(-4, Math.min(4, (targetX - sourceX - w / 2) / 50));
-        shot(sourceX, GY - boss.h + 18 + (i % 2) * 24, w, h, kind, color, horizontalSpeed, 5);
+        proj.push({ x: targetX - w / 2, y: GY - 190 - (i % 2) * 28, w, h, kind, c: color, vx: 0, vy: 7, life: 180 });
       }
     });
     const spread = (kind, color, y, w, h, count = 3) => {
