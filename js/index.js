@@ -58,14 +58,14 @@
   const K = {
     jump: ['KeyW'], crouch: ['KeyS'],
     left: ['KeyA'], right: ['KeyD'],
-    sword: ['KeyX'], shield: ['KeyC'],
-    dash: ['ShiftLeft', 'KeyZ'], power: ['KeyV'],
+    sword: ['KeyK'], shield: ['KeyL'],
+    dash: ['ShiftLeft', 'Keyj'], power: ['KeyP'],
   };
   const K2 = {
     jump: ['ArrowUp'], crouch: ['ArrowDown'],
     left: ['ArrowLeft'], right: ['ArrowRight'],
-    sword: ['KeyK'], shield: ['KeyL'],
-    dash: ['KeyJ'], power: ['KeyP'],
+    sword: ['Key4'], shield: ['Key5'],
+    dash: ['Key6'], power: ['Key9'],
   };
 
   const down = new Set();
