@@ -45,6 +45,27 @@
         obstacles: [{ k: 'lavaVent', w: 42, h: 42 }, { k: 'charRock', w: 46, h: 36 }, { k: 'obsidianSpike', w: 40, h: 44 }],
       },
     },
+    {
+      n: 'Pântano', sky: ['#143d2c', '#7ad7a2'], gr: '#214e35', bc: '#2b7a5b', attacks: ['bogPulse', 'mireSnare', 'reedBurst', 'swampRain'],
+      encounters: {
+        creatures: [{ k: 'forestWisp', w: 30, h: 26, flight: 78 }, { k: 'forestMoth', w: 38, h: 26, flight: 90 }, { k: 'mossBeetle', w: 36, h: 26 }],
+        obstacles: [{ k: 'mushroom', w: 38, h: 38 }, { k: 'stump', w: 42, h: 30 }, { k: 'thornBush', w: 44, h: 32 }],
+      },
+    },
+    {
+      n: 'Montanha', sky: ['#94a3b8', '#eef2ff'], gr: '#475569', bc: '#7c8ea2', attacks: ['stoneThrow', 'avalanche', 'ridgeStrike', 'windSlam'],
+      encounters: {
+        creatures: [{ k: 'snowOwl', w: 38, h: 28, flight: 84 }, { k: 'vulture', w: 42, h: 28, flight: 82 }, { k: 'mossBeetle', w: 36, h: 26 }],
+        obstacles: [{ k: 'rock', w: 42, h: 28 }, { k: 'spikes', w: 40, h: 20 }, { k: 'iceBoulder', w: 46, h: 38 }],
+      },
+    },
+    {
+      n: 'Mar', sky: ['#0f3d63', '#7bd9ff'], gr: '#1d4f73', bc: '#4fc3f7', attacks: ['waveCrash', 'tideBolt', 'reefBurst', 'mistBurst'],
+      encounters: {
+        creatures: [{ k: 'caveBat', w: 38, h: 26, flight: 106 }, { k: 'snowOwl', w: 38, h: 28, flight: 84 }, { k: 'forestMoth', w: 38, h: 26, flight: 94 }],
+        obstacles: [{ k: 'spikes', w: 40, h: 20 }, { k: 'sandstone', w: 48, h: 38 }, { k: 'rock', w: 42, h: 28 }],
+      },
+    },
   ];
   const SWORDS = [
     { id: 'flame', name: 'Fogo', color: '#fb5b36', ability: 'fere e incendeia o chefe' },
@@ -93,6 +114,10 @@
   };
   const bb = () => ({ x: boss.x, y: GY - boss.h, w: boss.w, h: boss.h });
   const score = () => Math.floor(dist / 10) + bonus;
+  const recoverLife = (p, amount = 1) => {
+    if (!p || p.hp <= 0) return;
+    p.hp = Math.min(5, p.hp + amount);
+  };
 
   function reset() {
     P = createPlayer(120);
@@ -118,7 +143,7 @@
     const s = score(); if (s > S.best) S.best = s;
     save();
     $('res-score').textContent = s; $('res-best').textContent = S.best;
-    $('res-biome').textContent = BIOMES[biome % 5].n; $('res-bosses').textContent = bk;
+    $('res-biome').textContent = BIOMES[biome % BIOMES.length].n; $('res-bosses').textContent = bk;
     show('game-modal');
   }
 
@@ -195,10 +220,11 @@
   // ---------- Spawns ----------
   function spawn() {
     const r = Math.random();
+    const obstacleBias = Math.min(0.78, 0.5 + biome * 0.06);
     if (r < .09) items.push({ k: Math.random() < .5 ? 'heart' : 'crystal', x: W + 20, y: GY - R(24, 70) });
     else if (r < .2) items.push({ k: 'sword', weapon: Math.floor(Math.random() * SWORDS.length), x: W + 20, y: GY - R(28, 64) });
     else {
-      const isCreature = Math.random() < .42;
+      const isCreature = Math.random() > obstacleBias;
       const pool = BIOMES[biome % BIOMES.length].encounters[isCreature ? 'creatures' : 'obstacles'];
       const encounter = pool[Math.floor(Math.random() * pool.length)];
       const y = GY - encounter.h - (encounter.flight || 0);
@@ -206,7 +232,7 @@
     }
   }
   function spawnBoss() {
-    const hp = 5 * (8 + 3 * Math.min(biome, 10));
+    const hp = 22 + biome * 18 + Math.max(0, biome - 1) * 12;
     boss = { x: W - 170, w: 90, h: 100, vx: -1.8, moving: true, moveTimer: R(80, 130), pauseTimer: 0, hp, max: hp, s: 'idle', tm: 90, atk: null, n: 0, flash: 0, burn: 0, burnTick: 0, poison: 0, poisonTick: 0, freeze: 0, stunClock: 1200, stunTimer: 0 };
   }
   function killBoss() {
@@ -217,7 +243,7 @@
       { k: 'crystal', x: W + 220, y: GY - 42 },
     );
     biome++; bossAt = dist + 5000; nextSp = 90;
-    say(BIOMES[biome % 5].n); save();
+    say(BIOMES[biome % BIOMES.length].n); save();
   }
 
   function damageBoss(amount) {
@@ -297,7 +323,7 @@
   // Cada chefe percorre seus quatro ataques em ordem.
   function pick() {
     boss.n++;
-    const attacks = BIOMES[biome % 5].attacks;
+    const attacks = BIOMES[biome % BIOMES.length].attacks;
     const choices = attacks.filter(attack => attack !== boss.atk);
     return choices[Math.floor(Math.random() * choices.length)];
   }
@@ -375,7 +401,12 @@
       if (o.x + o.w < -10) return false;
       for (const p of alive) {
         const box = pb(p);
-        if (o.creature && sb(p) && ov(sb(p), o)) { kills++; bonus += 10; return false; }
+        if (o.creature && sb(p) && ov(sb(p), o)) {
+          kills++; bonus += 10;
+          recoverLife(p, 1);
+          say('+1 coração');
+          return false;
+        }
         if (ov(box, o)) { hurt(true, p); return false; }
       }
       return true;
@@ -516,33 +547,45 @@
   }
 
   function drawBoss() {
-    const b = BIOMES[biome % 5], r = bb(), x = r.x, y = r.y, w = r.w, h = r.h;
+    const biomeIndex = biome % BIOMES.length;
+    const b = BIOMES[biomeIndex], r = bb(), x = r.x, y = r.y, w = r.w, h = r.h;
     const base = boss.flash ? '#fff' : boss.s === 'stun' ? '#9e9e9e' : b.bc;
     X.fillStyle = base;
-    if (biome % 5 === 0) {
+    if (biomeIndex === 0) {
       X.fillRect(x + 12, y + 24, w - 24, h - 24);
       for (let i = 0; i < 4; i++) { X.beginPath(); X.arc(x + 12 + i * 22, y + 22, 21, 0, Math.PI * 2); X.fill(); }
       X.fillStyle = '#254d20'; X.fillRect(x + 25, y + 58, 8, 24); X.fillRect(x + 55, y + 58, 8, 24);
-    } else if (biome % 5 === 1) {
+    } else if (biomeIndex === 1) {
       polygon([[x + 8, y + 30], [x + w / 2, y + 4], [x + w - 8, y + 30], [x + w - 4, y + h], [x + 4, y + h]], base);
       X.fillStyle = '#f2c46d'; X.fillRect(x + 7, y + 58, w - 14, 10);
       polygon([[x + 8, y + 68], [x - 6, y + 80], [x + 8, y + 78]], '#f2c46d');
-    } else if (biome % 5 === 2) {
+    } else if (biomeIndex === 2) {
       polygon([[x + 12, y + 22], [x + 28, y + 5], [x + 42, y + 20], [x + 62, y + 2], [x + 78, y + 25], [x + w, y + h], [x, y + h]], base);
       polygon([[x + 4, y + 42], [x - 9, y + 22], [x + 20, y + 37]], '#c4b5fd');
       polygon([[x + w - 4, y + 42], [x + w + 9, y + 22], [x + w - 20, y + 37]], '#c4b5fd');
-    } else if (biome % 5 === 3) {
+    } else if (biomeIndex === 3) {
       polygon([[x + 8, y + h], [x + 14, y + 30], [x + 28, y + 42], [x + 45, y + 4], [x + 59, y + 40], [x + 76, y + 20], [x + w - 6, y + h]], base);
       X.fillStyle = '#e0f2fe'; X.fillRect(x + 12, y + 76, w - 24, 9);
-    } else {
+    } else if (biomeIndex === 4) {
       X.fillRect(x + 10, y + 24, w - 20, h - 24);
       polygon([[x + 12, y + 28], [x + 5, y + 2], [x + 31, y + 25]], '#7f1d1d');
       polygon([[x + w - 12, y + 28], [x + w - 5, y + 2], [x + w - 31, y + 25]], '#7f1d1d');
       polygon([[x + 30, y + 63], [x + 40, y + 70], [x + 31, y + 86]], '#fb923c');
       polygon([[x + 60, y + 50], [x + 67, y + 57], [x + 58, y + 74]], '#fb923c');
+    } else if (biomeIndex === 5) {
+      polygon([[x + 10, y + 10], [x + w * 0.5, y + 2], [x + w - 10, y + 18], [x + w - 4, y + h], [x + 4, y + h]], base);
+      X.fillStyle = '#a3e635'; X.fillRect(x + 18, y + 62, w - 36, 12);
+      X.fillStyle = '#14532d'; X.fillRect(x + 24, y + 58, 8, 18); X.fillRect(x + 58, y + 58, 8, 18);
+    } else if (biomeIndex === 6) {
+      polygon([[x + 8, y + 32], [x + w * 0.5, y + 4], [x + w - 10, y + 34], [x + w - 8, y + h], [x + 8, y + h]], base);
+      X.fillStyle = '#dbeafe'; X.fillRect(x + 13, y + 56, w - 26, 10); X.fillRect(x + 22, y + 70, w - 44, 8);
+    } else {
+      polygon([[x + 10, y + 30], [x + w * 0.5, y + 6], [x + w - 10, y + 30], [x + w - 8, y + h], [x + 8, y + h]], base);
+      X.fillStyle = '#bae6fd'; X.fillRect(x + 16, y + 68, w - 32, 8);
+      X.fillStyle = '#f0f9ff'; X.fillRect(x + 24, y + 56, 12, 22); X.fillRect(x + 54, y + 56, 12, 22);
     }
     X.fillStyle = '#fff'; X.fillRect(x + 19, y + 34, 15, 12); X.fillRect(x + 56, y + 34, 15, 12);
-    X.fillStyle = biome % 5 === 4 ? '#7f1d1d' : '#000';
+    X.fillStyle = biomeIndex === 4 ? '#7f1d1d' : '#000';
     X.fillRect(x + 24, y + 37, 6, 6); X.fillRect(x + 61, y + 37, 6, 6);
     X.textAlign = 'center'; X.font = 'bold 12px sans-serif';
     if (boss.s === 'tel') {
@@ -609,7 +652,7 @@
   }
 
   function draw() {
-    const b = BIOMES[biome % 5], g = X.createLinearGradient(0, 0, 0, GY);
+    const b = BIOMES[biome % BIOMES.length], g = X.createLinearGradient(0, 0, 0, GY);
     g.addColorStop(0, b.sky[0]); g.addColorStop(1, b.sky[1]);
     X.fillStyle = g; X.fillRect(0, 0, W, H);
     X.fillStyle = 'rgba(0,0,0,.12)';
