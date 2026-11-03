@@ -830,6 +830,7 @@
 
     X.textAlign = 'left'; X.font = '20px sans-serif';
     const renderHP = (p, x, color = '#ef4444') => {
+      X.font = '20px sans-serif';
       for (let i = 0; i < 5; i++) { X.fillStyle = i < p.hp ? color : 'rgba(255,255,255,.25)'; X.fillText('♥', x + i * 22, 28); }
       X.fillStyle = 'rgba(0,0,0,.4)'; X.fillRect(x, 38, 110, 9);
       X.fillStyle = '#40c4ff'; X.fillRect(x, 38, 110 * p.en / 100, 9);
