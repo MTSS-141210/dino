@@ -79,14 +79,14 @@
   const K = {
     jump: ['KeyW'], crouch: ['KeyS'],
     left: ['KeyA'], right: ['KeyD'],
-    sword: ['KeyK'], shield: ['KeyL'],
-    dash: ['KeyJ'], power: ['KeyP'],
+    sword: ['KeyX'], shield: ['KeyC'],
+    dash: ['KeyZ', 'ShiftLeft'], power: ['KeyV'],
   };
   const K2 = {
-    jump: ['ArrowUp',], crouch: ['ArrowDown'],
+    jump: ['ArrowUp'], crouch: ['ArrowDown'],
     left: ['ArrowLeft'], right: ['ArrowRight'],
-    sword: ['Numpad5'], shield: ['Numpad6'],
-    dash: ['Numpad4'], power: ['Numpad9'],
+    sword: ['KeyK'], shield: ['KeyL'],
+    dash: ['KeyJ', 'ShiftRight'], power: ['KeyP'],
   };
 
   const down = new Set();
@@ -242,7 +242,12 @@
       { k: 'heart', x: W + 150, y: GY - 22 },
       { k: 'crystal', x: W + 220, y: GY - 42 },
     );
-    biome++; bossAt = dist + 5000; nextSp = 90;
+    biome++;
+    const survivor = playerList().find(p => p.hp > 0);
+    if (twoPlayer && survivor && playerList().some(p => p.hp <= 0)) {
+      items.push({ k: 'resurrection', x: Math.min(W - 30, survivor.x + 130), y: GY - 48 });
+    }
+    bossAt = dist + 5000; nextSp = 90;
     say(BIOMES[biome % BIOMES.length].n); save();
   }
 
@@ -372,7 +377,21 @@
       case 'fireball': launch(GY - 86, 34, 34, 'fireball', '#ef4444', -6); break;
       case 'lavaBurst': spread('lava', '#f97316', GY - 24, 30, 22); break;
       case 'eruption': shot(boss.x + (boss.w - 36) / 2, GY - boss.h, 36, boss.h, 'eruption', '#fb923c', 0, 0, 42); break;
-      default: return;
+      case 'bogPulse': launch(GY - 32, 64, 32, 'bog', '#65a30d', -4.5); break;
+      case 'mireSnare': launch(GY - 88, 24, 88, 'mire', '#166534', -8); break;
+      case 'reedBurst': spread('reed', '#84cc16', GY - 22, 20, 20, 4); break;
+      case 'swampRain': rain('swamp', '#4d7c0f', 18, 30, 3); break;
+      case 'stoneThrow': launch(GY - 54, 38, 34, 'stone', '#94a3b8', -5.5); break;
+      case 'avalanche': rain('snowRock', '#cbd5e1', 28, 30, 3); break;
+      case 'ridgeStrike': launch(GY - 92, 72, 18, 'ridge', '#64748b', -9); break;
+      case 'windSlam': spread('gust', '#bae6fd', GY - 34, 28, 30, 4); break;
+      case 'waveCrash': launch(GY - 42, 74, 42, 'wave', '#38bdf8', -4.5); break;
+      case 'tideBolt': launch(GY - 82, 32, 32, 'tide', '#0ea5e9', -8); break;
+      case 'reefBurst': spread('reef', '#2dd4bf', GY - 24, 24, 22, 4); break;
+      case 'mistBurst': rain('mist', '#bae6fd', 20, 34, 3); break;
+      default:
+        launch(GY - 34, 52, 34, 'impact', BIOMES[biome % BIOMES.length].bc, vx);
+        break;
     }
     boss.s = 'rec'; boss.tm = 48;
   }
@@ -419,6 +438,14 @@
         if (ov(pb(p), box)) {
           if (i.k === 'heart') p.hp = Math.min(5, p.hp + 1);
           else if (i.k === 'crystal') p.en = Math.min(100, p.en + 40);
+          else if (i.k === 'resurrection') {
+            const fallen = playerList().find(candidate => candidate.hp <= 0);
+            if (fallen) {
+              fallen.hp = 3; fallen.en = 100; fallen.x = Math.max(50, Math.min(420, p.x - p.face * 40));
+              fallen.y = GY; fallen.vy = 0; fallen.duck = false; fallen.sh = false; fallen.dash = 0; fallen.inv = 180;
+              say(`${fallen === P ? 'Jogador 1' : 'Jogador 2'} ressuscitado!`);
+            }
+          }
           else { p.weapon = i.weapon; p.weaponTimer = 30 * 60; p.powerCd = 0; say(`Espada ${SWORDS[i.weapon].name}: poder na tecla ${p === P ? 'V' : 'P'}`); }
           return false;
         }
@@ -589,8 +616,8 @@
     X.fillRect(x + 24, y + 37, 6, 6); X.fillRect(x + 61, y + 37, 6, 6);
     X.textAlign = 'center'; X.font = 'bold 12px sans-serif';
     if (boss.s === 'tel') {
-      const colors = { rootSweep: '#795548', vineLash: '#65a30d', seedBurst: '#84cc16', thornRain: '#365314', sandWave: '#d6a64f', sunSpear: '#fbbf24', sandBurst: '#c2410c', rockFall: '#78716c', echoBolt: '#c4b5fd', crystalLance: '#a78bfa', crystalRain: '#a78bfa', shardFan: '#8b5cf6', iceSlide: '#38bdf8', iceFan: '#7dd3fc', icicleRain: '#e0f2fe', blizzard: '#f8fafc', magmaWave: '#f97316', fireball: '#ef4444', lavaBurst: '#f97316', eruption: '#fb923c' };
-      const labels = { rootSweep: 'RAIZES', vineLash: 'CHICOTE', seedBurst: 'SEMENTES', thornRain: 'ESPINHOS', sandWave: 'ONDA DE AREIA', sunSpear: 'LANCE SOLAR', sandBurst: 'ESTILHACOS', rockFall: 'QUEDA DE ROCHAS', echoBolt: 'ECO', crystalLance: 'LANCE CRISTALINO', crystalRain: 'CHUVA DE CRISTAIS', shardFan: 'LEQUE DE ESTILHACOS', iceSlide: 'DESLIZE DE GELO', iceFan: 'LEQUE DE GELO', icicleRain: 'CHUVA DE GELO', blizzard: 'NEVASCA', magmaWave: 'ONDA DE MAGMA', fireball: 'BOLA DE FOGO', lavaBurst: 'RAJADA DE LAVA', eruption: 'ERUPCAO' };
+      const colors = { rootSweep: '#795548', vineLash: '#65a30d', seedBurst: '#84cc16', thornRain: '#365314', sandWave: '#d6a64f', sunSpear: '#fbbf24', sandBurst: '#c2410c', rockFall: '#78716c', echoBolt: '#c4b5fd', crystalLance: '#a78bfa', crystalRain: '#a78bfa', shardFan: '#8b5cf6', iceSlide: '#38bdf8', iceFan: '#7dd3fc', icicleRain: '#e0f2fe', blizzard: '#f8fafc', magmaWave: '#f97316', fireball: '#ef4444', lavaBurst: '#f97316', eruption: '#fb923c', bogPulse: '#65a30d', mireSnare: '#166534', reedBurst: '#84cc16', swampRain: '#4d7c0f', stoneThrow: '#94a3b8', avalanche: '#cbd5e1', ridgeStrike: '#64748b', windSlam: '#bae6fd', waveCrash: '#38bdf8', tideBolt: '#0ea5e9', reefBurst: '#2dd4bf', mistBurst: '#bae6fd' };
+      const labels = { rootSweep: 'RAIZES', vineLash: 'CHICOTE', seedBurst: 'SEMENTES', thornRain: 'ESPINHOS', sandWave: 'ONDA DE AREIA', sunSpear: 'LANCE SOLAR', sandBurst: 'ESTILHACOS', rockFall: 'QUEDA DE ROCHAS', echoBolt: 'ECO', crystalLance: 'LANCE CRISTALINO', crystalRain: 'CHUVA DE CRISTAIS', shardFan: 'LEQUE DE ESTILHACOS', iceSlide: 'DESLIZE DE GELO', iceFan: 'LEQUE DE GELO', icicleRain: 'CHUVA DE GELO', blizzard: 'NEVASCA', magmaWave: 'ONDA DE MAGMA', fireball: 'BOLA DE FOGO', lavaBurst: 'RAJADA DE LAVA', eruption: 'ERUPCAO', bogPulse: 'PULSO DO PANTANO', mireSnare: 'LACO DO BREJO', reedBurst: 'RAJADA DE JUNCO', swampRain: 'CHUVA DO PANTANO', stoneThrow: 'PEDRA', avalanche: 'AVALANCHE', ridgeStrike: 'GOLPE DA SERRA', windSlam: 'RAJADA DE VENTO', waveCrash: 'ONDA DO MAR', tideBolt: 'RAIO DA MARE', reefBurst: 'RAJADA DE RECIFE', mistBurst: 'EXPLOSAO DE NEVOA' };
       X.strokeStyle = colors[boss.atk] || '#ffeb3b'; X.lineWidth = 4; X.strokeRect(x - 3, y - 3, w + 6, h + 6);
       X.fillStyle = X.strokeStyle; X.fillText(labels[boss.atk] || '', x + w / 2, y - 12);
     }
@@ -813,6 +840,14 @@
         X.shadowColor = sword.color; X.shadowBlur = 10;
         drawSwordSprite(sword);
         X.shadowBlur = 0;
+        X.restore();
+      } else if (i.k === 'resurrection') {
+        X.save();
+        X.globalAlpha = .35;
+        X.fillStyle = '#c4b5fd'; X.beginPath(); X.arc(i.x, i.y, 19 + Math.sin(t * .12) * 3, 0, Math.PI * 2); X.fill();
+        X.globalAlpha = 1;
+        X.strokeStyle = '#ede9fe'; X.lineWidth = 2; X.beginPath(); X.arc(i.x, i.y, 12, 0, Math.PI * 2); X.stroke();
+        X.fillStyle = '#fff'; X.fillRect(i.x - 2, i.y - 7, 4, 14); X.fillRect(i.x - 7, i.y - 2, 14, 4);
         X.restore();
       } else {
         X.fillStyle = i.k === 'heart' ? '#ff4081' : '#40c4ff'; X.beginPath(); X.arc(i.x, i.y, 11, 0, 7); X.fill();

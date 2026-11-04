@@ -1,4 +1,4 @@
-h<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
@@ -11,11 +11,20 @@ h<!DOCTYPE html>
 <body>
   <div class="app-container">
     <header>
-      <h1>DINO</h1>
+      <div class="brand" aria-label="Dino Aventura">
+        <span class="brand-mark" aria-hidden="true">D</span>
+        <div class="brand-copy">
+          <h1>Dino</h1>
+          <span class="brand-subtitle">Aventura selvagem</span>
+        </div>
+      </div>
       <div class="header-actions">
-        <div id="game-score">0</div>
-        <button class="icon-button" id="btn-help-trigger" title="Como Jogar">?</button>
-        <button class="icon-button" id="btn-stats-trigger" title="Estatísticas">&#9646;&#9646;</button>
+        <div class="score-card" role="group" aria-label="Pontuação">
+          <span class="score-label">Pontos</span>
+          <div id="game-score" aria-live="polite">0</div>
+        </div>
+        <button class="icon-button" id="btn-help-trigger" title="Como Jogar" aria-label="Como jogar">?</button>
+        <button class="icon-button" id="btn-stats-trigger" title="Estatísticas" aria-label="Estatísticas">&#9646;&#9646;</button>
       </div>
     </header>
 
@@ -67,8 +76,8 @@ h<!DOCTYPE html>
   <div id="help-modal" class="modal-overlay">
     <div class="modal">
       <h2>Como Jogar</h2>
-      <p>Corra por <strong>5 biomas</strong>, cada um com obstáculos próprios e um <strong>chefe</strong> no fim. <strong>Pule</strong> obstáculos baixos e <strong>agache</strong> dos altos. Encontre seis espadas especiais pelo caminho: fogo incendeia, gelo congela, raio causa dano extra e dissipa projéteis, veneno causa dano contínuo, vento acelera e cristal cura e protege. Cada espada dura <strong>30 segundos</strong> e depois quebra. Pressione <kbd>V</kbd> para ativar o poder da espada (jogador 1) ou <kbd>P</kbd> (jogador 2); o poder tem recarga. Corações curam e cristais azuis dão energia. Cada chefe tem quatro ataques próprios, anunciados antes de acontecerem. Para jogar em <strong>dois jogadores</strong>, aperte <kbd>2</kbd>. O jogador 2 usa as setas para pular, agachar e mover; <kbd>K</kbd> ataca, <kbd>L</kbd> ativa o escudo e <kbd>J</kbd> dá a investida.</p>
-      <p class="boss-rules"><strong>Chefes:</strong> eles se movem pela arena e atacam dos dois lados quando estão longe dos cantos; o contato não causa dano. A cada 20 segundos ficam atordoados por 2,6 segundos e recebem 1,5x dano. Espadas especiais causam 1,6x o dano normal. Obstáculos não são destruídos pela espada, mas podem ser bloqueados pelo escudo. Ao derrotar um chefe, surgem duas orbes de vida e uma de energia.</p>
+      <p>Corra por <strong>8 biomas</strong>, cada um com obstáculos próprios e um <strong>chefe</strong> no fim. <strong>Pule</strong> obstáculos baixos e <strong>agache</strong> dos altos. Encontre seis espadas especiais pelo caminho: fogo incendeia, gelo congela, raio causa dano extra e dissipa projéteis, veneno causa dano contínuo, vento acelera e cristal cura e protege. Cada espada dura <strong>30 segundos</strong> e depois quebra. Pressione <kbd>V</kbd> para ativar o poder da espada (jogador 1) ou <kbd>P</kbd> (jogador 2); o poder tem recarga. Corações curam e cristais azuis dão energia. Cada chefe tem quatro ataques próprios, anunciados antes de acontecerem. Para jogar em <strong>dois jogadores</strong>, aperte <kbd>2</kbd>. O jogador 2 usa as setas para pular, agachar e mover; <kbd>K</kbd> ataca, <kbd>L</kbd> ativa o escudo e <kbd>J</kbd> ou <kbd>SHIFT DIR.</kbd> dá a investida.</p>
+      <p class="boss-rules"><strong>Chefes:</strong> eles se movem pela arena e atacam dos dois lados quando estão longe dos cantos; o contato não causa dano. A cada 20 segundos ficam atordoados por 2,6 segundos e recebem 1,5x dano. Espadas especiais causam 1,6x o dano normal. Obstáculos não são destruídos pela espada, mas podem ser bloqueados pelo escudo. Ao derrotar um chefe, surgem duas orbes de vida e uma de energia. Somente no modo de dois jogadores, se um jogador cair e o outro derrotar o chefe, aparece uma orbe de ressuscitação; o jogador ativo pode coletá-la para trazer o parceiro de volta.</p>
       <div class="help-keys-grid">
         <div class="help-key-item"><kbd>ESPAÇO</kbd><kbd>↑</kbd><kbd>W</kbd><span>Pular</span></div>
         <div class="help-key-item"><kbd>↓</kbd><kbd>S</kbd><span>Agachar (segurar)</span></div>
