@@ -10,6 +10,8 @@
   --acc: #a3e635;
   --acc-2: #d9f99d;
   --shadow: rgba(0, 0, 0, 0.42);
+  --biome: #a3e635; /* atualizado pelo jogo conforme o bioma */
+  --pixel: 'Press Start 2P', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 * { box-sizing: border-box; }
@@ -20,11 +22,13 @@ body { min-height: 100vh; }
 body {
   margin: 0;
   background:
-    radial-gradient(ellipse at 50% -18%, rgba(132, 204, 22, 0.16), transparent 48%),
+    radial-gradient(ellipse at 50% -18%, color-mix(in srgb, var(--biome) 22%, transparent), transparent 48%),
     radial-gradient(ellipse at 100% 80%, rgba(20, 83, 45, 0.13), transparent 34%),
     linear-gradient(155deg, #07110e 0%, #0b1713 52%, #08100f 100%);
+  background-attachment: fixed;
   color: var(--txt);
   font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  transition: background 0.6s ease;
 }
 
 .app-container {
@@ -56,20 +60,24 @@ header {
   background: linear-gradient(145deg, #bef264, #4d7c0f);
   box-shadow: 0 7px 22px rgba(132, 204, 22, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.35);
   color: #14240c;
-  font-size: 1.5rem;
-  font-weight: 950;
+  font-family: var(--pixel);
+  font-size: 1.2rem;
+  font-weight: 400;
   line-height: 1;
+  padding-left: 2px;
 }
 
-.brand-copy { display: grid; gap: 1px; }
+.brand-copy { display: grid; gap: 4px; }
 
 h1 {
   margin: 0;
-  font-size: 1.25rem;
-  font-weight: 900;
-  letter-spacing: 0.19em;
+  font-family: var(--pixel);
+  font-size: 1rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
   line-height: 1.1;
   text-transform: uppercase;
+  text-shadow: 0 0 18px color-mix(in srgb, var(--biome) 45%, transparent);
 }
 
 .brand-subtitle {
@@ -140,11 +148,16 @@ h1 {
   width: 100%;
   max-width: 1184px;
   margin: 0 auto;
-  border: 1px solid rgba(190, 242, 100, 0.23);
+  border: 1px solid color-mix(in srgb, var(--biome) 55%, transparent);
   border-radius: 20px;
   overflow: hidden;
   background: #08110e;
-  box-shadow: 0 28px 72px rgba(0, 0, 0, 0.48), 0 0 0 5px rgba(255, 255, 255, 0.018), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  box-shadow:
+    0 28px 72px rgba(0, 0, 0, 0.48),
+    0 0 70px color-mix(in srgb, var(--biome) 28%, transparent),
+    0 0 0 5px rgba(255, 255, 255, 0.018),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  transition: box-shadow 0.6s ease, border-color 0.6s ease;
 }
 
 #game-canvas {
@@ -173,11 +186,19 @@ h1 {
 
 .dino-hint-title {
   color: #f7fee7;
-  font-size: clamp(1.5rem, 3vw, 2.45rem);
-  font-weight: 900;
-  letter-spacing: 0.12em;
+  font-family: var(--pixel);
+  font-size: clamp(1.1rem, 2.4vw, 1.8rem);
+  font-weight: 400;
+  line-height: 1.3;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  text-shadow: 0 4px 26px rgba(163, 230, 53, 0.22);
+  text-shadow: 0 4px 26px rgba(163, 230, 53, 0.35), 3px 3px 0 rgba(20, 60, 10, 0.8);
+  animation: title-float 3s ease-in-out infinite;
+}
+
+@keyframes title-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
 }
 
 .dino-hint-keys {
@@ -234,7 +255,15 @@ h1 {
   font-size: 0.9rem;
 }
 
-.dino-hint-sub { font-weight: 650; }
+.dino-hint-sub {
+  font-weight: 650;
+  animation: blink 1.4s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
 
 @media (max-height: 500px) {
   .dino-hint { justify-content: flex-start; }
@@ -266,22 +295,32 @@ kbd {
 
 .modal-overlay.active { display: flex; }
 
+.modal-overlay.active .modal { animation: modal-pop 0.22s ease-out; }
+
+@keyframes modal-pop {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+
 .modal {
   width: min(100%, 560px);
   max-height: 90vh;
   overflow: auto;
   background: linear-gradient(150deg, rgba(20, 39, 30, 0.98), rgba(9, 19, 15, 0.99) 72%);
-  border: 1px solid rgba(190, 242, 100, 0.2);
+  border: 1px solid color-mix(in srgb, var(--biome) 35%, transparent);
   border-radius: 20px;
   padding: 26px 24px;
   box-shadow: 0 28px 80px rgba(0, 0, 0, 0.56), inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .modal h2 {
-  margin: 0 0 14px;
+  margin: 0 0 16px;
   text-align: center;
-  font-size: 1.35rem;
-  letter-spacing: 0.1em;
+  font-family: var(--pixel);
+  font-size: 1.05rem;
+  font-weight: 400;
+  line-height: 1.4;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
@@ -320,8 +359,10 @@ kbd {
 
 .stats-grid b {
   display: block;
+  margin-bottom: 4px;
   font-size: 1.5rem;
   font-weight: 800;
+  color: var(--acc-2);
 }
 
 .stats-grid span {
@@ -371,6 +412,8 @@ kbd {
   transform: translateY(-1px);
 }
 
+.btn:active { transform: translateY(1px); }
+
 .btn:focus-visible,
 kbd:focus-visible {
   outline: 3px solid rgba(217, 249, 157, 0.8);
@@ -390,7 +433,7 @@ kbd:focus-visible {
   }
 
   .brand-mark { width: 39px; height: 39px; border-radius: 13px; }
-  h1 { font-size: 1.05rem; }
+  h1 { font-size: 0.85rem; }
   .brand-subtitle { font-size: 0.58rem; }
   .header-actions { gap: 6px; }
   .score-card { min-width: 83px; gap: 7px; padding: 7px 9px; }
@@ -411,14 +454,15 @@ kbd:focus-visible {
   .dino-hint-player2 { padding: 8px 10px; }
   .modal-overlay { padding: 12px; }
   .modal { padding: 22px 18px; border-radius: 16px; }
-  .modal h2 { font-size: 1.2rem; }
+  .modal h2 { font-size: 0.9rem; }
   .help-key-item { font-size: 0.78rem; }
 }
 
 @media (max-width: 420px) {
   .app-container { padding-inline: 8px; }
   .brand { gap: 8px; }
-  .brand-mark { width: 34px; height: 34px; border-radius: 11px; font-size: 1.25rem; }
+  .brand-mark { width: 34px; height: 34px; border-radius: 11px; font-size: 1rem; }
+  h1 { font-size: 0.72rem; }
   .score-card { min-width: 72px; gap: 5px; padding-inline: 7px; }
   .score-label { font-size: 0.52rem; letter-spacing: 0.05em; }
   .header-actions { gap: 5px; }

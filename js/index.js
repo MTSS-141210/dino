@@ -1,4 +1,3 @@
-
 (() => {
   const C = document.getElementById('game-canvas'), X = C.getContext('2d');
   const W = 800, H = 400, GY = 340;
@@ -67,6 +66,12 @@
       },
     },
   ];
+  const BOSS_NAMES = ['Guardião da Floresta', 'Rei das Areias', 'Senhor da Caverna', 'Gigante de Gelo', 'Titã de Magma', 'Fera do Pântano', 'Colosso da Montanha', 'Leviatã do Mar'];
+  // Partículas ambientes por bioma (índice do bioma -> tipo)
+  const AMB = {
+    0: { c: '#d9f99d', kind: 'fly' }, 2: { c: '#c4b5fd', kind: 'fly' }, 3: { c: '#ffffff', kind: 'snow' },
+    4: { c: '#fb923c', kind: 'ember' }, 5: { c: '#bef264', kind: 'fly' }, 6: { c: '#ffffff', kind: 'snow' },
+  };
   const SWORDS = [
     { id: 'flame', name: 'Fogo', color: '#fb5b36', ability: 'fere e incendeia o chefe' },
     { id: 'frost', name: 'Gelo', color: '#7dd3fc', ability: 'congela o chefe' },
@@ -99,6 +104,13 @@
 
   let st = 'ready', paused = false, twoPlayer = false;
   let P, P2, obs, items, proj, boss, dist, biome, bossAt, t, scr, kills, bk, bonus, habit, nextSp, hit, toast = 0, toastT = '';
+  // Efeitos visuais
+  let parts = [], amb = [], shake = 0, fade = 0, lastBi = -1;
+
+  const puff = (x, y, n, c, o = {}) => {
+    const s = o.s || 1;
+    for (let i = 0; i < n; i++) parts.push({ x, y, vx: R(-1.5, 1.5) * s, vy: R(-2.5, -.3) * s, g: o.g ?? .08, life: R(20, 40), max: 40, r: R(2, 5), c });
+  };
 
   const refreshStartHint = () => $('p2-hint-keys').classList.toggle('active', twoPlayer);
   const say = s => { toastT = s; toast = 150; };
@@ -124,6 +136,7 @@
     P2 = twoPlayer ? createPlayer(160) : null;
     refreshStartHint();
     obs = []; items = []; proj = []; boss = null;
+    parts = []; amb = []; shake = 0; fade = 0;
     dist = 0; biome = 0; bossAt = 5000; t = 0; scr = 0; kills = 0; bk = 0; bonus = 0;
     habit = { j: 0, d: 0 }; nextSp = 60; hit = new Set();
     say(twoPlayer ? '2 Jogadores' : BIOMES[0].n);
@@ -149,8 +162,13 @@
 
   function hurt(blockable, p = P) {
     if (p.hp <= 0 || p.inv > 0 || p.dash > 0) return;
-    if (blockable && p.sh && p.face === 1) { p.en = Math.max(0, p.en - 10); p.inv = 10; return; }
+    if (blockable && p.sh && p.face === 1) {
+      p.en = Math.max(0, p.en - 10); p.inv = 10;
+      puff(p.x + 22, p.y - 26, 6, '#93c5fd', { s: 1.5 });
+      return;
+    }
     p.hp--; p.inv = 70;
+    shake = 12; puff(p.x, p.y - 24, 14, '#ef4444', { s: 2 });
     if (!twoPlayer && p.hp <= 0) over();
     if (twoPlayer && playerList().every(j => j.hp <= 0)) over();
   }
@@ -166,10 +184,14 @@
     if (act('right', keys)) { p.x += speed; p.face = 1; }
     const cr = act('crouch', keys);
     p.duck = cr && p.y >= GY;
+    const wasAir = p.y < GY;
     p.vy += .7 + (cr && p.y < GY ? .9 : 0); p.y += p.vy;
-    if (p.y >= GY) { p.y = GY; p.vy = 0; }
+    if (p.y >= GY) {
+      p.y = GY; p.vy = 0;
+      if (wasAir) puff(p.x, GY, 8, 'rgba(255,255,255,.5)');
+    }
     if (act('jump', keys) && p.y >= GY) { p.vy = -14; habit.j++; }
-    if (p.dash > 0) { p.dash--; p.x += p.face * 8; }
+    if (p.dash > 0) { p.dash--; p.x += p.face * 8; if (t % 2 === 0) puff(p.x - p.face * 14, p.y - 20, 1, 'rgba(190,242,100,.6)', { s: .4 }); }
     p.x = Math.max(50, Math.min(boss ? W - 200 : 420, p.x));
     p.sh = act('shield', keys) && p.en > 0 && !p.dash;
     p.en = p.sh ? Math.max(0, p.en - .45) : Math.min(100, p.en + .12);
@@ -236,6 +258,9 @@
     boss = { x: W - 170, w: 90, h: 100, vx: -1.8, moving: true, moveTimer: R(80, 130), pauseTimer: 0, hp, max: hp, s: 'idle', tm: 90, atk: null, n: 0, flash: 0, burn: 0, burnTick: 0, poison: 0, poisonTick: 0, freeze: 0, stunClock: 1200, stunTimer: 0 };
   }
   function killBoss() {
+    puff(boss.x + boss.w / 2, GY - 50, 70, BIOMES[biome % BIOMES.length].bc, { s: 3 });
+    puff(boss.x + boss.w / 2, GY - 50, 30, '#fde047', { s: 2.5 });
+    shake = 25; fade = 1;
     bk++; S.bosses++; bonus += 100; boss = null; proj = [];
     items.push(
       { k: 'heart', x: W + 80, y: GY - 22 },
@@ -289,9 +314,10 @@
       else {
         const reach = 200, area = { x: p.face > 0 ? p.x : p.x - reach, y: GY - 90, w: reach, h: 100 };
         let destroyed = 0;
-        obs = obs.filter(o => { if (ov(area, o)) { destroyed++; return false; } return true; });
+        obs = obs.filter(o => { if (ov(area, o)) { destroyed++; puff(o.x + o.w / 2, o.y + o.h / 2, 8, '#facc15', { s: 1.5 }); return false; } return true; });
         bonus += destroyed * 10;
       }
+      shake = Math.max(shake, 8);
     }
     if (sword.id === 'venom') {
       const power = { damage: 2, effect: 'poison' };
@@ -300,6 +326,7 @@
     }
     if (sword.id === 'wind') p.windBoost = 240;
     if (sword.id === 'crystal') { p.hp = Math.min(5, p.hp + 2); p.en = 100; p.inv = Math.max(p.inv, 120); }
+    puff(p.x, p.y - 30, 14, sword.color, { s: 2 });
     say(`${sword.name}: ${sword.ability}!`);
   }
 
@@ -402,6 +429,22 @@
     const wsp = 4.5 + Math.min(biome, 8) * .5 + Math.min(dist / 30000, 1.5);
     scr += wsp;
 
+    // Efeitos visuais
+    if (shake > 0) shake--;
+    if (fade > 0) fade = Math.max(0, fade - .02);
+    parts = parts.filter(p => { p.x += p.vx - wsp * .3; p.y += p.vy; p.vy += p.g; return --p.life > 0; });
+    if (t % 6 === 0 && P.y >= GY && P.hp > 0 && P.dash <= 0) puff(P.x - 10, GY, 1, 'rgba(255,255,255,.35)', { s: .5 });
+    const am = AMB[biome % BIOMES.length];
+    if (am && t % 6 === 0 && amb.length < 40) {
+      if (am.kind === 'fly') amb.push({ x: W + 10, y: R(120, GY - 20), vx: R(-.6, -.1), vy: 0, ph: R(0, 7), life: 400, r: 2, c: am.c, kind: 'fly' });
+      else if (am.kind === 'snow') amb.push({ x: R(0, W + 60), y: -6, vx: R(-1.4, -.4), vy: R(.6, 1.6), ph: 0, life: 300, r: R(1.2, 2.6), c: am.c, kind: 'snow' });
+      else amb.push({ x: R(0, W), y: GY, vx: R(-1, 0), vy: R(-1.8, -.6), ph: 0, life: 120, r: R(1.5, 3), c: am.c, kind: 'ember' });
+    }
+    amb = amb.filter(a => {
+      a.x += a.vx - wsp * .25; a.y += a.vy + (a.kind === 'fly' ? Math.sin(t * .05 + a.ph) * .4 : 0);
+      return --a.life > 0 && a.x > -10 && a.y < GY && a.y > -12;
+    });
+
     updatePlayer(P, K);
     if (twoPlayer && P2) updatePlayer(P2, K2);
     if (toast > 0) toast--;
@@ -423,6 +466,7 @@
         if (o.creature && sb(p) && ov(sb(p), o)) {
           kills++; bonus += 10;
           recoverLife(p, 1);
+          puff(o.x + o.w / 2, o.y + o.h / 2, 10, '#fde047');
           say('+1 coração');
           return false;
         }
@@ -436,17 +480,18 @@
       for (const p of alive) {
         const box = { x: i.x - 14, y: i.y - 14, w: 28, h: 28 };
         if (ov(pb(p), box)) {
-          if (i.k === 'heart') p.hp = Math.min(5, p.hp + 1);
-          else if (i.k === 'crystal') p.en = Math.min(100, p.en + 40);
+          if (i.k === 'heart') { p.hp = Math.min(5, p.hp + 1); puff(i.x, i.y, 8, '#ff4081'); }
+          else if (i.k === 'crystal') { p.en = Math.min(100, p.en + 40); puff(i.x, i.y, 8, '#40c4ff'); }
           else if (i.k === 'resurrection') {
             const fallen = playerList().find(candidate => candidate.hp <= 0);
             if (fallen) {
               fallen.hp = 3; fallen.en = 100; fallen.x = Math.max(50, Math.min(420, p.x - p.face * 40));
               fallen.y = GY; fallen.vy = 0; fallen.duck = false; fallen.sh = false; fallen.dash = 0; fallen.inv = 180;
+              puff(fallen.x, fallen.y - 30, 20, '#c4b5fd', { s: 2 });
               say(`${fallen === P ? 'Jogador 1' : 'Jogador 2'} ressuscitado!`);
             }
           }
-          else { p.weapon = i.weapon; p.weaponTimer = 30 * 60; p.powerCd = 0; say(`Espada ${SWORDS[i.weapon].name}: poder na tecla ${p === P ? 'V' : 'P'}`); }
+          else { p.weapon = i.weapon; p.weaponTimer = 30 * 60; p.powerCd = 0; puff(i.x, i.y, 10, SWORDS[i.weapon].color, { s: 1.5 }); say(`Espada ${SWORDS[i.weapon].name}: poder na tecla ${p === P ? 'V' : 'P'}`); }
           return false;
         }
       }
@@ -460,11 +505,11 @@
       if (p.friendly) {
         if (boss && ov(p, bb())) { applyPowerHit(p.power); return false; }
         let struck = false;
-        obs = obs.filter(o => { if (ov(p, o)) { struck = true; bonus += 10; return false; } return true; });
+        obs = obs.filter(o => { if (ov(p, o)) { struck = true; bonus += 10; puff(o.x + o.w / 2, o.y + o.h / 2, 8, p.c); return false; } return true; });
         return !struck;
       }
       for (const j of alive) {
-        if (sb(j) && ov(sb(j), p)) { bonus += 5; return false; }
+        if (sb(j) && ov(sb(j), p)) { bonus += 5; puff(p.x + p.w / 2, p.y + p.h / 2, 6, p.c || '#fff', { s: 1.2 }); return false; }
         if (ov(pb(j), p)) { hurt(true, j); return false; }
       }
       return true;
@@ -494,6 +539,7 @@
       for (const { p, s } of playerBoxes) {
         if (!hit.has('b') && s && ov(s, bb())) {
           hit.add('b'); applySwordHit(p); boss.flash = 6;
+          puff(boss.x + (p.face > 0 ? 0 : boss.w), p.y - 30, 8, '#fff', { s: 1.5 });
           if (boss.hp <= 0) killBoss();
           break;
         }
@@ -504,20 +550,54 @@
   }
 
   // ---------- Desenho ----------
+  function polygon(points, color) {
+    X.fillStyle = color; X.beginPath(); X.moveTo(points[0][0], points[0][1]);
+    points.slice(1).forEach(([x, y]) => X.lineTo(x, y));
+    X.closePath(); X.fill();
+  }
+
+  const rr = (x, y, w, h, r, c) => {
+    X.fillStyle = c; X.beginPath();
+    if (X.roundRect) X.roundRect(x, y, w, h, r); else X.rect(x, y, w, h);
+    X.fill();
+  };
+
+  // Texto com contorno para legibilidade
+  const otext = (s, x, y) => {
+    X.lineJoin = 'round'; X.lineWidth = 3; X.strokeStyle = 'rgba(0,0,0,.55)';
+    X.strokeText(s, x, y); X.fillText(s, x, y);
+  };
+
   function drawDino(p, color = '#2e7d32') {
+    // Sombra no chão (diminui conforme o dino sobe)
+    const k = 1 - Math.min(1, (GY - p.y) / 150);
+    X.fillStyle = 'rgba(0,0,0,.25)'; X.beginPath(); X.ellipse(p.x, GY + 3, 20 * k + 6, 4 * k + 1.5, 0, 0, 7); X.fill();
+
     X.save(); X.translate(p.x, p.y); X.scale(p.face, 1);
     if (p.inv > 0 && (t >> 2) & 1) X.globalAlpha = .4;
     const d = p.duck, lg = p.y >= GY ? Math.sin(p.step) * 4 : 0;
+    const green = color === '#2e7d32';
+    const c2 = green ? '#43a047' : '#60a5fa', belly = green ? '#c8e6c9' : '#dbeafe';
     X.fillStyle = color; X.fillRect(-9, -10, 7, 10 + lg); X.fillRect(2, -10, 7, 10 - lg);
-    X.fillStyle = color === '#2e7d32' ? '#43a047' : '#60a5fa';
-    if (d) { X.fillRect(-20, -24, 36, 16); X.fillRect(8, -32, 18, 14); }
-    else { X.fillRect(-14, -36, 26, 26); X.fillRect(-22, -30, 9, 8); X.fillRect(4, -48, 22, 16); }
-    X.fillStyle = '#fff'; X.fillRect(18, d ? -28 : -44, 4, 4);
+    if (d) {
+      rr(-22, -26, 38, 18, 7, c2); rr(8, -34, 20, 16, 6, c2);
+    } else {
+      polygon([[-12, -30], [-32, -18 + Math.sin(t * .2) * 3], [-12, -16]], c2); // rabo balançando
+      rr(-14, -38, 28, 28, 8, c2);                                              // corpo
+      rr(-4, -26, 16, 14, 6, belly);                                            // barriga
+      rr(2, -54, 26, 18, 7, c2);                                                // cabeça
+      for (let i = 0; i < 3; i++) polygon([[-10 + i * 8, -38], [-6 + i * 8, -46], [-2 + i * 8, -38]], color); // espinhos
+    }
+    const ey = d ? -30 : -48;
+    X.fillStyle = '#fff'; X.fillRect(18, ey, 5, 5);
+    X.fillStyle = '#111'; X.fillRect(20, ey + 1, 3, 3);
     if (p.sw > 0) {
       const a = -1.3 + (12 - p.sw) / 12 * 2.6;
       const sword = swordOf(p), reach = sword?.id === 'wind' ? 100 : 55;
       X.strokeStyle = sword?.color || '#e5e7eb'; X.lineWidth = 5; X.beginPath();
       X.moveTo(12, -24); X.lineTo(12 + Math.cos(a) * reach, -24 + Math.sin(a) * reach); X.stroke();
+      // rastro do golpe
+      X.save(); X.globalAlpha *= .35; X.lineWidth = 12; X.beginPath(); X.arc(12, -24, reach * .9, -1.3, a); X.stroke(); X.restore();
     }
     if (p.sh) { X.strokeStyle = '#42a5f5'; X.lineWidth = 4; X.beginPath(); X.arc(16, -26, 24, -1.2, 1.2); X.stroke(); }
     X.restore();
@@ -567,16 +647,12 @@
     X.restore();
   }
 
-  function polygon(points, color) {
-    X.fillStyle = color; X.beginPath(); X.moveTo(points[0][0], points[0][1]);
-    points.slice(1).forEach(([x, y]) => X.lineTo(x, y));
-    X.closePath(); X.fill();
-  }
-
   function drawBoss() {
     const biomeIndex = biome % BIOMES.length;
     const b = BIOMES[biomeIndex], r = bb(), x = r.x, y = r.y, w = r.w, h = r.h;
     const base = boss.flash ? '#fff' : boss.s === 'stun' ? '#9e9e9e' : b.bc;
+    // sombra do chefe
+    X.fillStyle = 'rgba(0,0,0,.28)'; X.beginPath(); X.ellipse(x + w / 2, GY + 3, w * .6, 6, 0, 0, 7); X.fill();
     X.fillStyle = base;
     if (biomeIndex === 0) {
       X.fillRect(x + 12, y + 24, w - 24, h - 24);
@@ -619,22 +695,28 @@
       const colors = { rootSweep: '#795548', vineLash: '#65a30d', seedBurst: '#84cc16', thornRain: '#365314', sandWave: '#d6a64f', sunSpear: '#fbbf24', sandBurst: '#c2410c', rockFall: '#78716c', echoBolt: '#c4b5fd', crystalLance: '#a78bfa', crystalRain: '#a78bfa', shardFan: '#8b5cf6', iceSlide: '#38bdf8', iceFan: '#7dd3fc', icicleRain: '#e0f2fe', blizzard: '#f8fafc', magmaWave: '#f97316', fireball: '#ef4444', lavaBurst: '#f97316', eruption: '#fb923c', bogPulse: '#65a30d', mireSnare: '#166534', reedBurst: '#84cc16', swampRain: '#4d7c0f', stoneThrow: '#94a3b8', avalanche: '#cbd5e1', ridgeStrike: '#64748b', windSlam: '#bae6fd', waveCrash: '#38bdf8', tideBolt: '#0ea5e9', reefBurst: '#2dd4bf', mistBurst: '#bae6fd' };
       const labels = { rootSweep: 'RAIZES', vineLash: 'CHICOTE', seedBurst: 'SEMENTES', thornRain: 'ESPINHOS', sandWave: 'ONDA DE AREIA', sunSpear: 'LANCE SOLAR', sandBurst: 'ESTILHACOS', rockFall: 'QUEDA DE ROCHAS', echoBolt: 'ECO', crystalLance: 'LANCE CRISTALINO', crystalRain: 'CHUVA DE CRISTAIS', shardFan: 'LEQUE DE ESTILHACOS', iceSlide: 'DESLIZE DE GELO', iceFan: 'LEQUE DE GELO', icicleRain: 'CHUVA DE GELO', blizzard: 'NEVASCA', magmaWave: 'ONDA DE MAGMA', fireball: 'BOLA DE FOGO', lavaBurst: 'RAJADA DE LAVA', eruption: 'ERUPCAO', bogPulse: 'PULSO DO PANTANO', mireSnare: 'LACO DO BREJO', reedBurst: 'RAJADA DE JUNCO', swampRain: 'CHUVA DO PANTANO', stoneThrow: 'PEDRA', avalanche: 'AVALANCHE', ridgeStrike: 'GOLPE DA SERRA', windSlam: 'RAJADA DE VENTO', waveCrash: 'ONDA DO MAR', tideBolt: 'RAIO DA MARE', reefBurst: 'RAJADA DE RECIFE', mistBurst: 'EXPLOSAO DE NEVOA' };
       X.strokeStyle = colors[boss.atk] || '#ffeb3b'; X.lineWidth = 4; X.strokeRect(x - 3, y - 3, w + 6, h + 6);
-      X.fillStyle = X.strokeStyle; X.fillText(labels[boss.atk] || '', x + w / 2, y - 12);
+      X.fillStyle = X.strokeStyle; otext(labels[boss.atk] || '', x + w / 2, y - 12);
     }
-    if (boss.freeze > 0) { X.fillStyle = '#bae6fd'; X.font = 'bold 13px sans-serif'; X.fillText('CONGELADO', x + w / 2, y - 24); }
+    if (boss.freeze > 0) { X.fillStyle = '#bae6fd'; X.font = 'bold 13px sans-serif'; otext('CONGELADO', x + w / 2, y - 24); }
     if (boss.burn > 0 || boss.poison > 0) {
       X.fillStyle = boss.burn > 0 ? '#fb923c' : '#a3e635';
       X.beginPath(); X.arc(x + w / 2, y - 5, 5, 0, Math.PI * 2); X.fill();
     }
     X.font = 'bold 22px sans-serif';
     if (boss.s === 'stun') {
-      X.fillStyle = '#ffeb3b'; X.fillText(`ATORDOADO ${Math.ceil(boss.stunTimer / 60)}s`, r.x + r.w / 2, r.y - 8);
+      X.fillStyle = '#ffeb3b'; otext(`ATORDOADO ${Math.ceil(boss.stunTimer / 60)}s`, r.x + r.w / 2, r.y - 8);
     }
-    X.fillStyle = '#000'; X.fillRect(W / 2 - 150, 14, 300, 10);
-    X.fillStyle = '#ef4444'; X.fillRect(W / 2 - 150, 14, 300 * Math.max(0, boss.hp) / boss.max, 10);
+    // Nome e barra de vida
+    const bx = W / 2 - 150;
+    X.font = 'bold 11px sans-serif'; X.textAlign = 'center'; X.fillStyle = '#fff';
+    otext(BOSS_NAMES[biomeIndex], W / 2, 14);
+    X.fillStyle = 'rgba(0,0,0,.6)'; X.fillRect(bx - 2, 18, 304, 14);
+    X.fillStyle = boss.s === 'stun' ? '#facc15' : '#ef4444'; X.fillRect(bx, 20, 300 * Math.max(0, boss.hp) / boss.max, 10);
+    X.fillStyle = 'rgba(255,255,255,.25)'; X.fillRect(bx, 20, 300 * Math.max(0, boss.hp) / boss.max, 3);
+    X.strokeStyle = 'rgba(255,255,255,.6)'; X.lineWidth = 1; X.strokeRect(bx - 2, 18, 304, 14);
   }
 
-  function drawProjectile(p) {
+  function drawProjectileRaw(p) {
     if (p.kind === 'root') {
       X.fillStyle = p.c; X.fillRect(p.x, p.y + 10, p.w, p.h - 10);
       for (let i = 0; i < 4; i++) polygon([[p.x + i * 17, p.y + 12], [p.x + i * 17 + 8, p.y], [p.x + i * 17 + 15, p.y + 12]], '#a16207');
@@ -678,15 +760,54 @@
     }
   }
 
+  // Projétil com brilho na própria cor
+  function drawProjectile(p) {
+    X.save();
+    X.shadowColor = p.c || '#fff'; X.shadowBlur = 12;
+    drawProjectileRaw(p);
+    X.restore();
+  }
+
+  // Colinas com paralaxe
+  function ridge(speed, base, amp, color, seed) {
+    X.fillStyle = color; X.beginPath(); X.moveTo(0, GY);
+    for (let x = 0; x <= W; x += 10) {
+      const wx = x + scr * speed;
+      X.lineTo(x, GY - base - Math.sin(wx * .01 + seed) * amp - Math.sin(wx * .023 + seed * 2) * amp * .5);
+    }
+    X.lineTo(W, GY); X.closePath(); X.fill();
+  }
+
   function draw() {
-    const b = BIOMES[biome % BIOMES.length], g = X.createLinearGradient(0, 0, 0, GY);
+    const bi = biome % BIOMES.length, b = BIOMES[bi], g = X.createLinearGradient(0, 0, 0, GY);
+    if (bi !== lastBi) { lastBi = bi; document.documentElement.style.setProperty('--biome', b.bc); }
+
+    X.save();
+    if (shake > 0) X.translate(R(-1, 1) * shake * .5, R(-1, 1) * shake * .5);
+
     g.addColorStop(0, b.sky[0]); g.addColorStop(1, b.sky[1]);
-    X.fillStyle = g; X.fillRect(0, 0, W, H);
-    X.fillStyle = 'rgba(0,0,0,.12)';
-    for (let i = -1; i < 6; i++) { const x = i * 180 - (scr * .2 % 180); X.beginPath(); X.moveTo(x, GY); X.lineTo(x + 90, GY - 110); X.lineTo(x + 180, GY); X.fill(); }
-    X.fillStyle = b.gr; X.fillRect(0, GY, W, H - GY);
+    X.fillStyle = g; X.fillRect(-12, -12, W + 24, H + 24);
+    ridge(.08, 110, 34, 'rgba(0,0,0,.10)', 1);
+    ridge(.2, 60, 22, 'rgba(0,0,0,.18)', 4);
+    ridge(.4, 25, 12, 'rgba(0,0,0,.25)', 9);
+
+    X.fillStyle = b.gr; X.fillRect(-12, GY, W + 24, H - GY + 12);
+    const gg = X.createLinearGradient(0, GY, 0, H);
+    gg.addColorStop(0, 'rgba(255,255,255,.12)'); gg.addColorStop(1, 'rgba(0,0,0,.45)');
+    X.fillStyle = gg; X.fillRect(-12, GY, W + 24, H - GY + 12);
+    X.fillStyle = 'rgba(255,255,255,.25)'; X.fillRect(-12, GY, W + 24, 2);
     X.fillStyle = 'rgba(0,0,0,.18)';
     for (let i = 0; i < 20; i++) X.fillRect(i * 60 - (scr % 60), GY + 12 + (i % 3) * 14, 20, 3);
+
+    // Partículas ambientes do bioma
+    amb.forEach(a => {
+      X.globalAlpha = Math.min(1, a.life / 40) * (a.kind === 'snow' ? .85 : .9);
+      X.fillStyle = a.c;
+      if (a.kind !== 'snow') { X.shadowColor = a.c; X.shadowBlur = 8; }
+      X.beginPath(); X.arc(a.x, a.y, a.r, 0, 7); X.fill();
+      X.shadowBlur = 0;
+    });
+    X.globalAlpha = 1;
 
     obs.forEach(o => {
       const flap = Math.sin(t * .4) * 8;
@@ -836,7 +957,7 @@
     items.forEach(i => {
       if (i.k === 'sword') {
         const sword = SWORDS[i.weapon];
-        X.save(); X.translate(i.x, i.y); X.rotate(-.65);
+        X.save(); X.translate(i.x, i.y + Math.sin(t * .08 + i.x * .02) * 3); X.rotate(-.65);
         X.shadowColor = sword.color; X.shadowBlur = 10;
         drawSwordSprite(sword);
         X.shadowBlur = 0;
@@ -850,41 +971,53 @@
         X.fillStyle = '#fff'; X.fillRect(i.x - 2, i.y - 7, 4, 14); X.fillRect(i.x - 7, i.y - 2, 14, 4);
         X.restore();
       } else {
+        X.save();
+        X.shadowColor = i.k === 'heart' ? '#ff4081' : '#40c4ff'; X.shadowBlur = 10;
         X.fillStyle = i.k === 'heart' ? '#ff4081' : '#40c4ff'; X.beginPath(); X.arc(i.x, i.y, 11, 0, 7); X.fill();
+        X.restore();
         X.fillStyle = '#fff'; X.font = '12px sans-serif'; X.textAlign = 'center'; X.fillText(i.k === 'heart' ? '♥' : '◆', i.x, i.y + 4);
       }
     });
     proj.forEach(drawProjectile);
+
+    // Partículas de impacto
+    parts.forEach(p => { X.globalAlpha = Math.max(0, p.life / p.max); X.fillStyle = p.c; X.beginPath(); X.arc(p.x, p.y, p.r, 0, 7); X.fill(); });
+    X.globalAlpha = 1;
+
     if (boss) drawBoss();
     drawDino(P, '#2e7d32');
     drawPowerEffect(P);
     if (twoPlayer && P2) drawDino(P2, '#2563eb');
     if (twoPlayer && P2) drawPowerEffect(P2);
 
+    X.restore(); // fim do tremor: o HUD fica parado
+
     X.fillStyle = `rgba(5,10,40,${(1 - Math.cos(t / 900)) / 2 * .5})`; X.fillRect(0, 0, W, H);
+    if (fade > 0) { X.fillStyle = `rgba(255,255,255,${fade * .6})`; X.fillRect(0, 0, W, H); }
 
     X.textAlign = 'left'; X.font = '20px sans-serif';
     const renderHP = (p, x, color = '#ef4444') => {
       X.font = '20px sans-serif';
-      for (let i = 0; i < 5; i++) { X.fillStyle = i < p.hp ? color : 'rgba(255,255,255,.25)'; X.fillText('♥', x + i * 22, 28); }
+      for (let i = 0; i < 5; i++) { X.fillStyle = i < p.hp ? color : 'rgba(255,255,255,.25)'; otext('♥', x + i * 22, 28); }
       X.fillStyle = 'rgba(0,0,0,.4)'; X.fillRect(x, 38, 110, 9);
       X.fillStyle = '#40c4ff'; X.fillRect(x, 38, 110 * p.en / 100, 9);
+      X.strokeStyle = 'rgba(255,255,255,.35)'; X.lineWidth = 1; X.strokeRect(x, 38, 110, 9);
       if (canDash(p)) {
         X.fillStyle = '#86efac'; X.fillRect(x, 52, 110, 4);
-        X.fillStyle = '#fff'; X.font = 'bold 9px sans-serif'; X.fillText('INVESTIDA PRONTA', x, 67);
+        X.fillStyle = '#fff'; X.font = 'bold 9px sans-serif'; otext('INVESTIDA PRONTA', x, 67);
       }
       const sword = swordOf(p);
       if (sword) {
         X.fillStyle = sword.color; X.font = 'bold 10px sans-serif';
-        X.fillText(`ESPADA ${sword.name.toUpperCase()} ${Math.ceil(p.weaponTimer / 60)}s`, x, 83);
+        otext(`ESPADA ${sword.name.toUpperCase()} ${Math.ceil(p.weaponTimer / 60)}s`, x, 83);
         X.fillStyle = p.powerCd <= 0 ? '#fff' : '#9ca3af'; X.font = 'bold 9px sans-serif';
-        X.fillText(`${p.powerCd <= 0 ? 'PODER PRONTO' : `PODER ${Math.ceil(p.powerCd / 60)}s`} (${p === P ? 'V' : 'P'})`, x, 96);
+        otext(`${p.powerCd <= 0 ? 'PODER PRONTO' : `PODER ${Math.ceil(p.powerCd / 60)}s`} (${p === P ? 'V' : 'P'})`, x, 96);
       }
     };
     renderHP(P, 10, '#ef4444');
     if (twoPlayer && P2) renderHP(P2, 560, '#60a5fa');
 
-    if (toast > 0) { X.globalAlpha = Math.min(1, toast / 40); X.textAlign = 'center'; X.font = 'bold 28px sans-serif'; X.fillStyle = '#fff'; X.fillText(toastT, W / 2, 80); X.globalAlpha = 1; }
+    if (toast > 0) { X.globalAlpha = Math.min(1, toast / 40); X.textAlign = 'center'; X.font = 'bold 28px sans-serif'; X.fillStyle = '#fff'; X.lineWidth = 5; otext(toastT, W / 2, 80); X.globalAlpha = 1; }
   }
 
   let last = 0, acc = 0;
