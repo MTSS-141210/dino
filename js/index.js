@@ -313,9 +313,14 @@
       if (boss) applyPowerHit({ damage: 10 });
       else {
         const reach = 200, area = { x: p.face > 0 ? p.x : p.x - reach, y: GY - 90, w: reach, h: 100 };
-        let destroyed = 0;
-        obs = obs.filter(o => { if (ov(area, o)) { destroyed++; puff(o.x + o.w / 2, o.y + o.h / 2, 8, '#facc15', { s: 1.5 }); return false; } return true; });
-        bonus += destroyed * 10;
+        let hitCount = 0;
+        obs.forEach(o => {
+          if (ov(area, o)) {
+            hitCount++;
+            puff(o.x + o.w / 2, o.y + o.h / 2, 8, '#facc15', { s: 1.5 });
+          }
+        });
+        bonus += hitCount * 10;
       }
       shake = Math.max(shake, 8);
     }
@@ -505,7 +510,14 @@
       if (p.friendly) {
         if (boss && ov(p, bb())) { applyPowerHit(p.power); return false; }
         let struck = false;
-        obs = obs.filter(o => { if (ov(p, o)) { struck = true; bonus += 10; puff(o.x + o.w / 2, o.y + o.h / 2, 8, p.c); return false; } return true; });
+        for (const o of obs) {
+          if (ov(p, o)) {
+            struck = true;
+            bonus += 10;
+            puff(o.x + o.w / 2, o.y + o.h / 2, 8, p.c);
+            break;
+          }
+        }
         return !struck;
       }
       for (const j of alive) {
