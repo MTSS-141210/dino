@@ -465,9 +465,9 @@
         const box = pb(p);
         if (o.creature && sb(p) && ov(sb(p), o)) {
           kills++; bonus += 10;
-          recoverLife(p, 1);
-          puff(o.x + o.w / 2, o.y + o.h / 2, 10, '#fde047');
-          say('+1 coração');
+          recoverLife(p, .25);
+          puff(o.x + o.w / 2, o.y + o.h / 2, 14, '#fb7185', { s: 1.2 });
+          say('+¼ coração');
           return false;
         }
         if (ov(box, o)) { hurt(true, p); return false; }
@@ -485,7 +485,7 @@
           else if (i.k === 'resurrection') {
             const fallen = playerList().find(candidate => candidate.hp <= 0);
             if (fallen) {
-              fallen.hp = 3; fallen.en = 100; fallen.x = Math.max(50, Math.min(420, p.x - p.face * 40));
+              fallen.hp = 2.5; fallen.en = 100; fallen.x = Math.max(50, Math.min(420, p.x - p.face * 40));
               fallen.y = GY; fallen.vy = 0; fallen.duck = false; fallen.sh = false; fallen.dash = 0; fallen.inv = 180;
               puff(fallen.x, fallen.y - 30, 20, '#c4b5fd', { s: 2 });
               say(`${fallen === P ? 'Jogador 1' : 'Jogador 2'} ressuscitado!`);
@@ -998,7 +998,21 @@
     X.textAlign = 'left'; X.font = '20px sans-serif';
     const renderHP = (p, x, color = '#ef4444') => {
       X.font = '20px sans-serif';
-      for (let i = 0; i < 5; i++) { X.fillStyle = i < p.hp ? color : 'rgba(255,255,255,.25)'; otext('♥', x + i * 22, 28); }
+      for (let i = 0; i < 5; i++) {
+        const heartX = x + i * 22;
+        const fill = Math.max(0, Math.min(1, p.hp - i));
+        X.fillStyle = 'rgba(255,255,255,.2)';
+        X.fillText('♥', heartX, 28);
+        if (fill > 0) {
+          X.save();
+          X.beginPath(); X.rect(heartX, 7, 18 * fill, 24); X.clip();
+          X.shadowColor = color; X.shadowBlur = 8;
+          X.fillStyle = color; X.fillText('♥', heartX, 28);
+          X.restore();
+        }
+        X.lineJoin = 'round'; X.lineWidth = 2; X.strokeStyle = 'rgba(0,0,0,.55)';
+        X.strokeText('♥', heartX, 28);
+      }
       X.fillStyle = 'rgba(0,0,0,.4)'; X.fillRect(x, 38, 110, 9);
       X.fillStyle = '#40c4ff'; X.fillRect(x, 38, 110 * p.en / 100, 9);
       X.strokeStyle = 'rgba(255,255,255,.35)'; X.lineWidth = 1; X.strokeRect(x, 38, 110, 9);
