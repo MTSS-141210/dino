@@ -146,8 +146,10 @@
   const bb = () => ({ x: boss.x, y: GY - boss.h, w: boss.w, h: boss.h });
   const score = () => Math.floor(dist / 10) + bonus;
   const recoverLife = (p, amount = 1) => {
-    if (!p || p.hp <= 0) return;
+    if (!p || p.hp <= 0) return 0;
+    const previousHP = p.hp;
     p.hp = Math.min(5, p.hp + amount);
+    return p.hp - previousHP;
   };
 
   function reset() {
@@ -331,12 +333,6 @@
     if (sword.id === 'thunder') {
       proj = proj.filter(shot => shot.friendly);
       if (boss) applyPowerHit({ damage: 10 });
-      else {
-        const reach = 200, area = { x: p.face > 0 ? p.x : p.x - reach, y: GY - 90, w: reach, h: 100 };
-        let destroyed = 0;
-        obs = obs.filter(o => { if (ov(area, o)) { destroyed++; puff(o.x + o.w / 2, o.y + o.h / 2, 8, '#facc15', { s: 1.5 }); return false; } return true; });
-        bonus += destroyed * 10;
-      }
       shake = Math.max(shake, 8);
     }
     if (sword.id === 'venom') {
@@ -485,9 +481,8 @@
         const box = pb(p);
         if (o.creature && sb(p) && ov(sb(p), o)) {
           kills++; bonus += 10;
-          recoverLife(p, 1);
+          if (recoverLife(p, .25) > 0) say('+1/4 coração');
           puff(o.x + o.w / 2, o.y + o.h / 2, 10, '#fde047');
-          say('+1 coração');
           return false;
         }
         if (ov(box, o)) { hurt(true, p); return false; }
@@ -524,12 +519,9 @@
       if (p.x + p.w < -40 || p.x > W + 40 || p.y >= GY || p.y + p.h < -30 || p.life <= 0) return false;
       if (p.friendly) {
         if (boss && ov(p, bb())) { applyPowerHit(p.power); return false; }
-        let struck = false;
-        obs = obs.filter(o => { if (ov(p, o)) { struck = true; bonus += 10; puff(o.x + o.w / 2, o.y + o.h / 2, 8, p.c); return false; } return true; });
-        return !struck;
+        return true;
       }
       for (const j of alive) {
-        if (sb(j) && ov(sb(j), p)) { bonus += 5; puff(p.x + p.w / 2, p.y + p.h / 2, 6, p.c || '#fff', { s: 1.2 }); return false; }
         if (ov(pb(j), p)) { hurt(true, j); return false; }
       }
       return true;
@@ -1498,10 +1490,21 @@
       X.font = '20px sans-serif';
       for (let i = 0; i < 5; i++) {
         const hx = x + 9 + i * 22, hy = 20, hs = 8.5;
-        X.beginPath(); X.moveTo(hx, hy + hs * .9); X.bezierCurveTo(hx - hs * 1.6, hy - hs * .2, hx - hs * .8, hy - hs * 1.3, hx, hy - hs * .45);
-        X.bezierCurveTo(hx + hs * .8, hy - hs * 1.3, hx + hs * 1.6, hy - hs * .2, hx, hy + hs * .9); X.closePath();
-        X.fillStyle = i < p.hp ? color : 'rgba(255,255,255,.2)'; X.fill(); X.strokeStyle = 'rgba(0,0,0,.6)'; X.lineWidth = 1.5; X.stroke();
-        if (i < p.hp) ell(hx - 3.5, hy - 3.5, 2.4, 1.4, 'rgba(255,255,255,.65)');
+        const heartPath = () => {
+          X.beginPath(); X.moveTo(hx, hy + hs * .9); X.bezierCurveTo(hx - hs * 1.6, hy - hs * .2, hx - hs * .8, hy - hs * 1.3, hx, hy - hs * .45);
+          X.bezierCurveTo(hx + hs * .8, hy - hs * 1.3, hx + hs * 1.6, hy - hs * .2, hx, hy + hs * .9); X.closePath();
+        };
+        const fill = Math.max(0, Math.min(1, p.hp - i));
+        heartPath(); X.fillStyle = 'rgba(255,255,255,.16)'; X.fill();
+        if (fill > 0) {
+          X.save(); heartPath(); X.clip();
+          const gradient = X.createLinearGradient(0, hy - hs, 0, hy + hs);
+          gradient.addColorStop(0, '#fff'); gradient.addColorStop(.22, color); gradient.addColorStop(1, color);
+          X.fillStyle = gradient; X.fillRect(hx - hs * 1.7, hy - hs * 1.5, hs * 3.4 * fill, hs * 3);
+          ell(hx - 3.5, hy - 3.5, 2.4, 1.4, 'rgba(255,255,255,.65)');
+          X.restore();
+        }
+        heartPath(); X.strokeStyle = 'rgba(0,0,0,.6)'; X.lineWidth = 1.5; X.stroke();
       }
       X.fillStyle = 'rgba(0,0,0,.4)'; X.fillRect(x, 38, 110, 9);
       X.fillStyle = lg(x, 0, x + 110, 0, '#0284c7', '#67e8f9'); X.fillRect(x, 38, 110 * p.en / 100, 9);
