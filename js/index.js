@@ -181,14 +181,14 @@
     show('game-modal');
   }
 
-  function hurt(blockable, p = P) {
+  function hurt(blockable, p = P, amount = 1) {
     if (p.hp <= 0 || p.inv > 0 || p.dash > 0) return;
     if (blockable && p.sh && p.face === 1) {
       p.en = Math.max(0, p.en - 10); p.inv = 10;
       puff(p.x + 22, p.y - 26, 6, '#93c5fd', { s: 1.5 });
       return;
     }
-    p.hp--; p.inv = 70;
+    p.hp = Math.max(0, p.hp - amount); p.inv = 70;
     shake = 12; puff(p.x, p.y - 24, 14, '#ef4444', { s: 2 });
     if (!twoPlayer && p.hp <= 0) over();
     if (twoPlayer && playerList().every(j => j.hp <= 0)) over();
@@ -485,7 +485,7 @@
           puff(o.x + o.w / 2, o.y + o.h / 2, 10, '#fde047');
           return false;
         }
-        if (ov(box, o)) { hurt(true, p); return false; }
+        if (ov(box, o)) { hurt(true, p, o.creature ? (Math.random() < .5 ? 2 : 4) : 1); return false; }
       }
       return true;
     });
