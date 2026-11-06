@@ -78,6 +78,7 @@
     { id: 'thunder', name: 'Raio', color: '#facc15', ability: 'causa dano extra e dissipa projeteis' },
     { id: 'venom', name: 'Veneno', color: '#a3e635', ability: 'envenena o chefe' },
     { id: 'wind', name: 'Vento', color: '#5eead4', ability: 'acelera seus movimentos' },
+    { id: 'blood', name: 'Sangue', color: '#dc2626', ability: 'rouba vida ao ferir o chefe' },
     { id: 'crystal', name: 'Cristal', color: '#c4b5fd', ability: 'cura e protege' },
   ];
 
@@ -128,6 +129,7 @@
       case 'thunder': puff(q.x, q.y, n, '#fef08a', { s: 1.5, g: 0 }); break;
       case 'venom': puff(q.x, q.y, n, '#a3e635', { s: .3, g: .12 }); break;
       case 'wind': puff(q.x, q.y, n, '#99f6e4', { s: 1, g: 0 }); break;
+      case 'blood': puff(q.x, q.y, n, '#ef4444', { s: .5, g: .08 }); break;
       default: puff(q.x, q.y, n, Math.random() < .5 ? '#c4b5fd' : '#ffffff', { s: .5, g: -.02 });
     }
   };
@@ -301,11 +303,15 @@
   }
 
   function damageBoss(amount) {
-    if (boss) boss.hp -= amount * (boss.stunTimer > 0 ? 1.5 : 1);
+    if (!boss) return 0;
+    const damage = Math.min(boss.hp, amount * (boss.stunTimer > 0 ? 1.5 : 1));
+    boss.hp -= damage;
+    return damage;
   }
 
   function applySwordHit(p) {
-    damageBoss(p.weapon === null ? 1 : 1.6);
+    const damage = damageBoss(p.weapon === null ? 1 : 1.6);
+    if (swordOf(p)?.id === 'blood') recoverLife(p, damage);
   }
 
   function applyPowerHit(power) {
@@ -336,6 +342,11 @@
       proj = proj.filter(shot => shot.friendly);
       if (boss) applyPowerHit({ damage: 10 });
       shake = Math.max(shake, 8);
+    }
+    if (sword.id === 'blood' && boss) {
+      recoverLife(p, damageBoss(4));
+      boss.flash = 6;
+      if (boss.hp <= 0) killBoss();
     }
     if (sword.id === 'venom') {
       const power = { damage: 2, effect: 'poison' };
@@ -488,7 +499,7 @@
           puff(o.x + o.w / 2, o.y + o.h / 2, 10, '#fde047');
           return false;
         }
-        if (ov(box, o)) { hurt(true, p, o.creature ? (Math.random() < .5 ? 2 : 4) : 1); return false; }
+        if (ov(box, o)) { hurt(true, p, o.creature ? (Math.random() < .5 ? 1 : 2) : 1); return false; }
       }
       return true;
     });
@@ -532,7 +543,7 @@
 
     if (boss) {
       if (boss.stunTimer <= 0 && boss.freeze <= 0) {
-        if (boss.s !== 'tel') {
+        if (boss.s !== 'rec') {
           if (boss.moving) {
             boss.x += boss.vx;
             if (boss.x <= 180) { boss.x = 180; boss.vx = Math.abs(boss.vx); boss.moving = false; boss.pauseTimer = R(35, 65); }
@@ -546,8 +557,7 @@
       if (boss.freeze > 0) boss.freeze--; else boss.tm--;
       if (boss.flash > 0) boss.flash--;
       if (boss.tm <= 0 && boss.freeze <= 0 && boss.stunTimer <= 0 && boss.s !== 'stun') {
-        if (boss.s === 'idle') { boss.atk = pick(); boss.s = 'tel'; boss.tm = 45; }
-        else if (boss.s === 'tel') fire();
+        if (boss.s === 'idle') { boss.atk = pick(); fire(); }
         else { boss.s = 'idle'; boss.tm = R(60, 110); }
       }
       const playerBoxes = alive.map(p => ({ p, s: sb(p) }));
@@ -634,6 +644,7 @@
     thunder: [[-3, 8], [-1, 0], [-5, -4], [1, -9], [-1, -17], [7, -7], [2, -3], [4, 8]],
     venom: [[-3, 8], [-6, 1], [-2, -4], [-5, -9], [1, -18], [5, -8], [2, -1], [4, 8]],
     wind: [[-3, 8], [-5, -1], [-2, -8], [0, -18], [4, -7], [3, 1], [4, 8]],
+    blood: [[-3, 8], [-5, 1], [-2, -5], [-5, -11], [0, -18], [5, -11], [2, -5], [5, 1], [3, 8]],
     crystal: [[-3, 8], [-6, 1], [-2, -6], [0, -18], [2, -6], [6, 1], [3, 8]],
   };
 
@@ -940,13 +951,10 @@
     },
   ];
 
-  const ATK_COLORS = { rootSweep: '#795548', vineLash: '#65a30d', seedBurst: '#84cc16', thornRain: '#365314', sandWave: '#d6a64f', sunSpear: '#fbbf24', sandBurst: '#c2410c', rockFall: '#78716c', echoBolt: '#c4b5fd', crystalLance: '#a78bfa', crystalRain: '#a78bfa', shardFan: '#8b5cf6', iceSlide: '#38bdf8', iceFan: '#7dd3fc', icicleRain: '#e0f2fe', blizzard: '#f8fafc', magmaWave: '#f97316', fireball: '#ef4444', lavaBurst: '#f97316', eruption: '#fb923c', bogPulse: '#65a30d', mireSnare: '#166534', reedBurst: '#84cc16', swampRain: '#4d7c0f', stoneThrow: '#94a3b8', avalanche: '#cbd5e1', ridgeStrike: '#64748b', windSlam: '#bae6fd', waveCrash: '#38bdf8', tideBolt: '#0ea5e9', reefBurst: '#2dd4bf', mistBurst: '#bae6fd' };
-  const ATK_LABELS = { rootSweep: 'RAIZES', vineLash: 'CHICOTE', seedBurst: 'SEMENTES', thornRain: 'ESPINHOS', sandWave: 'ONDA DE AREIA', sunSpear: 'LANCE SOLAR', sandBurst: 'ESTILHACOS', rockFall: 'QUEDA DE ROCHAS', echoBolt: 'ECO', crystalLance: 'LANCE CRISTALINO', crystalRain: 'CHUVA DE CRISTAIS', shardFan: 'LEQUE DE ESTILHACOS', iceSlide: 'DESLIZE DE GELO', iceFan: 'LEQUE DE GELO', icicleRain: 'CHUVA DE GELO', blizzard: 'NEVASCA', magmaWave: 'ONDA DE MAGMA', fireball: 'BOLA DE FOGO', lavaBurst: 'RAJADA DE LAVA', eruption: 'ERUPCAO', bogPulse: 'PULSO DO PANTANO', mireSnare: 'LACO DO BREJO', reedBurst: 'RAJADA DE JUNCO', swampRain: 'CHUVA DO PANTANO', stoneThrow: 'PEDRA', avalanche: 'AVALANCHE', ridgeStrike: 'GOLPE DA SERRA', windSlam: 'RAJADA DE VENTO', waveCrash: 'ONDA DO MAR', tideBolt: 'RAIO DA MARE', reefBurst: 'RAJADA DE RECIFE', mistBurst: 'EXPLOSAO DE NEVOA' };
-
   function drawBoss() {
     const biomeIndex = biome % BIOMES.length;
     const b = BIOMES[biomeIndex], r = bb(), x = r.x, y = r.y, w = r.w, h = r.h;
-    const stun = boss.s === 'stun', tel = boss.s === 'tel';
+    const stun = boss.s === 'stun';
     const T = c => boss.flash ? '#fff' : stun ? grayOf(c) : c;
     const P = (pts, c) => { polygon(pts, T(c)); X.strokeStyle = 'rgba(0,0,0,.4)'; X.lineWidth = 1.6; X.lineJoin = 'round'; X.stroke(); };
     const E = (cx, cy, rx, ry, c) => ell(cx, cy, rx, ry, T(c));
@@ -963,9 +971,7 @@
 
     // sombra e aura de ataque
     X.fillStyle = 'rgba(0,0,0,.3)'; X.beginPath(); X.ellipse(x + w / 2, GY + 3, w * .62, 6, 0, 0, 7); X.fill();
-    if (tel) glow(x + w / 2, y + 52, 78, '255,235,59', .22 + .12 * Math.sin(t * .4));
-
-    X.save(); X.translate(x + (tel ? R(-1.2, 1.2) : 0), y + bob);
+    X.save(); X.translate(x, y + bob);
     BOSS_ART[biomeIndex](P, E, eye, T);
     if (boss.freeze > 0) {
       X.fillStyle = 'rgba(186,230,253,.4)'; X.fillRect(-4, -4, w + 8, h + 8);
@@ -988,10 +994,6 @@
     }
 
     X.textAlign = 'center'; X.font = 'bold 12px sans-serif';
-    if (boss.s === 'tel') {
-      X.strokeStyle = ATK_COLORS[boss.atk] || '#ffeb3b'; X.lineWidth = 4; X.strokeRect(x - 3, y - 3, w + 6, h + 6);
-      X.fillStyle = X.strokeStyle; otext(ATK_LABELS[boss.atk] || '', x + w / 2, y - 12);
-    }
     if (boss.freeze > 0) { X.fillStyle = '#bae6fd'; X.font = 'bold 13px sans-serif'; otext('CONGELADO', x + w / 2, y - 24); }
     if (boss.burn > 0 || boss.poison > 0) {
       X.fillStyle = boss.burn > 0 ? '#fb923c' : '#a3e635';
