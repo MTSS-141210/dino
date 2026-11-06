@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css/style.css">
-  <script src="js/index.js" defer></script>
+  <script src="js/game.js" defer></script>
 </head>
 <body>
   <div class="app-container">
@@ -64,7 +64,8 @@
 
   <div id="game-modal" class="modal-overlay">
     <div class="modal">
-      <h2>FIM DA JORNADA</h2>
+      <h2 id="game-modal-title">FIM DA JORNADA</h2>
+      <p id="game-result-message" aria-live="polite" hidden></p>
       <div class="stats-grid">
         <div><b id="res-score">0</b><span>Pontos</span></div>
         <div><b id="res-best">0</b><span>Recorde</span></div>
@@ -79,7 +80,7 @@
   <div id="help-modal" class="modal-overlay">
     <div class="modal">
       <h2>Como Jogar</h2>
-      <p>Corra por <strong>9 biomas</strong>, cada um com obstáculos próprios e um <strong>chefe</strong> no fim. <strong>Pule</strong> obstáculos baixos e <strong>agache</strong> dos altos. No <strong>Céu Celeste</strong>, salte entre plataformas flutuantes e enfrente o Pterodáctilo Radiante, desviando dos raios de luz. Encontre sete espadas especiais pelo caminho: fogo incendeia, gelo congela, raio causa dano extra e dissipa projéteis, veneno causa dano contínuo, vento acelera, sangue recupera vida ao ferir o chefe e cristal cura e protege. Cada espada dura <strong>30 segundos</strong> e depois quebra. Pressione <kbd>V</kbd> para ativar o poder da espada (jogador 1) ou <kbd>P</kbd> (jogador 2); o poder tem recarga. Corações curam e cristais azuis dão energia. Cada chefe tem quatro ataques próprios; observe os avisos luminosos antes de atacar. Para jogar em <strong>dois jogadores</strong>, aperte <kbd>2</kbd>. O jogador 2 usa as setas para pular, agachar e mover; <kbd>K</kbd> ataca, <kbd>L</kbd> ativa o escudo e <kbd>J</kbd> ou <kbd>SHIFT DIR.</kbd> dá a investida.</p>
+      <p>Corra por <strong>9 biomas</strong>, cada um com obstáculos próprios e um <strong>chefe</strong> no fim. <strong>Pule</strong> obstáculos baixos e <strong>agache</strong> dos altos. O <strong>Céu Celeste</strong> é o último bioma: salte entre plataformas flutuantes, enfrente o Pterodáctilo Radiante e vença para completar a aventura. Encontre sete espadas especiais pelo caminho: fogo incendeia, gelo congela, raio causa dano extra e dissipa projéteis, veneno causa dano contínuo, vento acelera, sangue recupera vida ao ferir o chefe e cristal cura e protege. Cada espada dura <strong>30 segundos</strong> e depois quebra. Pressione <kbd>V</kbd> para ativar o poder da espada (jogador 1) ou <kbd>P</kbd> (jogador 2); o poder tem recarga. Corações curam e cristais azuis dão energia. Cada chefe tem quatro ataques próprios; observe os avisos luminosos antes de atacar. Para jogar em <strong>dois jogadores</strong>, aperte <kbd>2</kbd>. O jogador 2 usa as setas para pular, agachar e mover; <kbd>K</kbd> ataca, <kbd>L</kbd> ativa o escudo e <kbd>J</kbd> ou <kbd>SHIFT DIR.</kbd> dá a investida.</p>
       <p class="boss-rules"><strong>Chefes:</strong> eles se movem pela arena e atacam dos dois lados quando estão longe dos cantos; o contato não causa dano. A cada 20 segundos ficam atordoados por 2,6 segundos e recebem 1,5x dano. Espadas especiais causam 1,6x o dano normal. Obstáculos não são destruídos pela espada, mas podem ser bloqueados pelo escudo. Derrotar criaturas recupera 1/4 de coração. Ao derrotar um chefe, surgem duas orbes de vida e uma de energia. Somente no modo de dois jogadores, se um jogador cair e o outro derrotar o chefe, aparece uma orbe de ressuscitação; quem coletá-la traz o parceiro de volta com metade da vida.</p>
       <div class="help-keys-grid">
         <div class="help-key-item"><kbd>ESPAÇO</kbd><kbd>↑</kbd><kbd>W</kbd><span>Pular</span></div>

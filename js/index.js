@@ -216,10 +216,15 @@
     hide('game-modal'); $('dino-hint').classList.add('hide');
   }
 
-  function over() {
+  function over(victory = false) {
+    if (st === 'over') return;
     dirty = true; st = 'over'; S.games++;
     const s = score(); if (s > S.best) S.best = s;
     save();
+    $('game-modal-title').textContent = victory ? 'PARABÉNS!' : 'FIM DA JORNADA';
+    const resultMessage = $('game-result-message');
+    resultMessage.hidden = !victory;
+    resultMessage.textContent = victory ? 'Você venceu! Parabéns por atravessar os 9 biomas e conquistar o Céu Celeste!' : '';
     $('res-score').textContent = s; $('res-best').textContent = S.best;
     $('res-biome').textContent = BIOMES[biome % BIOMES.length].n; $('res-bosses').textContent = bk;
     show('game-modal');
@@ -267,7 +272,7 @@
     }
     if (act('jump', keys) && p.grounded) { p.vy = -14; p.grounded = false; habit.j++; }
     if (p.dash > 0) { p.dash--; p.x += p.face * 8; if (t % 2 === 0) puff(p.x - p.face * 14, p.y - 20, 1, 'rgba(190,242,100,.6)', { s: .4 }); }
-    p.x = Math.max(50, Math.min(boss ? W - 200 : 420, p.x));
+    p.x = Math.max(50, Math.min(W - 50, p.x));
     p.sh = act('shield', keys) && p.en > 0 && !p.dash;
     p.en = p.sh ? Math.max(0, p.en - .45) : Math.min(100, p.en + .12);
     if (act('sword', keys)) swingSword(p);
@@ -342,6 +347,7 @@
     boss = { x: W - 170, y: airborne ? GY - 155 : undefined, airborne, w: 90, h: 100, vx: -1.8, moving: true, moveTimer: R(80, 130), pauseTimer: 0, hp, max: hp, s: 'idle', tm: 90, atk: null, n: 0, flash: 0, burn: 0, burnTick: 0, poison: 0, poisonTick: 0, freeze: 0, stunClock: 1200, stunTimer: 0 };
   }
   function killBoss() {
+    const completedFinalBiome = biome === AIR_BIOME;
     puff(boss.x + boss.w / 2, GY - 50, 70, BIOMES[biome % BIOMES.length].bc, { s: 3 });
     puff(boss.x + boss.w / 2, GY - 50, 30, '#fde047', { s: 2.5 });
     shake = 25; fade = 1;
@@ -351,6 +357,10 @@
       { k: 'heart', x: W + 150, y: GY - 22 },
       { k: 'crystal', x: W + 220, y: GY - 42 },
     );
+    if (completedFinalBiome) {
+      over(true);
+      return;
+    }
     biome++;
     const survivor = playerList().find(p => p.hp > 0);
     if (twoPlayer && survivor && playerList().some(p => p.hp <= 0)) {
@@ -596,7 +606,7 @@
           puff(o.x + o.w / 2, o.y + o.h / 2, 10, '#fde047');
           return false;
         }
-        if (ov(box, o)) { hurt(true, p, o.creature ? (Math.random() < .5 ? 1 : 2) : 1); return false; }
+        if (ov(box, o)) { hurt(true, p, .5); return false; }
       }
       return true;
     });
@@ -634,7 +644,7 @@
         return true;
       }
       for (const j of alive) {
-        if (ov(pb(j), p)) { hurt(true, j); return false; }
+        if (ov(pb(j), p)) { hurt(true, j, 1); return false; }
       }
       return true;
     });
