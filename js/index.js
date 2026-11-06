@@ -65,12 +65,21 @@
         obstacles: [{ k: 'spikes', w: 40, h: 20 }, { k: 'sandstone', w: 48, h: 38 }, { k: 'rock', w: 42, h: 28 }],
       },
     },
+    {
+      n: 'Céu Celeste', sky: ['#29245f', '#b69be8'], gr: '#e8d9ba', bc: '#f5cb6b', attacks: ['skyLance', 'starRain', 'radiantFan', 'sunRay'],
+      encounters: {
+        creatures: [{ k: 'cloudManta', w: 46, h: 30, flight: 82 }, { k: 'sunWisp', w: 32, h: 32, flight: 108 }, { k: 'skySentinel', w: 40, h: 34, flight: 72 }],
+        obstacles: [{ k: 'lightSpire', w: 34, h: 48 }, { k: 'stormCloud', w: 48, h: 32, flight: 34 }, { k: 'cloudMine', w: 30, h: 30, flight: 70 }],
+      },
+    },
   ];
-  const BOSS_NAMES = ['Triceratops da Floresta', 'Espinossauro das Areias', 'Anquilossauro da Caverna', 'Estegossauro de Gelo', 'Rex de Magma', 'Braquiossauro do Pântano', 'Paquicefalossauro da Montanha', 'Pliossauro do Mar'];
+  const BOSS_NAMES = ['Triceratops da Floresta', 'Espinossauro das Areias', 'Anquilossauro da Caverna', 'Estegossauro de Gelo', 'Rex de Magma', 'Braquiossauro do Pântano', 'Paquicefalossauro da Montanha', 'Pliossauro do Mar', 'Pterodáctilo Radiante'];
+  const AIR_BIOME = 8;
   // Partículas ambientes por bioma (índice do bioma -> tipo)
   const AMB = {
     0: { c: '#d9f99d', kind: 'fly' }, 2: { c: '#c4b5fd', kind: 'fly' }, 3: { c: '#ffffff', kind: 'snow' },
     4: { c: '#fb923c', kind: 'ember' }, 5: { c: '#bef264', kind: 'fly' }, 6: { c: '#ffffff', kind: 'snow' },
+    8: { c: '#fff1a8', kind: 'star' },
   };
   const SWORDS = [
     { id: 'flame', name: 'Fogo', color: '#fb5b36', ability: 'fere e incendeia o chefe' },
@@ -85,14 +94,14 @@
   const K = {
     jump: ['KeyW'], crouch: ['KeyS'],
     left: ['KeyA'], right: ['KeyD'],
-    sword: ['KeyX'], shield: ['KeyC'],
-    dash: ['KeyZ', 'ShiftLeft'], power: ['KeyV'],
+    sword: ['KeyK'], shield: ['KeyL'],
+    dash: ['KeyJ'], power: ['KeyP'],
   };
   const K2 = {
     jump: ['ArrowUp'], crouch: ['ArrowDown'],
     left: ['ArrowLeft'], right: ['ArrowRight'],
-    sword: ['KeyK'], shield: ['KeyL'],
-    dash: ['KeyJ', 'ShiftRight'], power: ['KeyP'],
+    sword: ['Numpad5'], shield: ['Numpad6'],
+    dash: ['Numpad4'], power: ['Numpad9'],
   };
 
   const down = new Set();
@@ -103,8 +112,9 @@
   S.games |= 0; S.best |= 0; S.bosses |= 0;
   const save = () => { try { localStorage.setItem('dino-stats', JSON.stringify(S)); } catch (e) {} };
 
-  let st = 'ready', paused = false, twoPlayer = false;
-  let P, P2, obs, items, proj, boss, dist, biome, bossAt, t, scr, kills, bk, bonus, habit, nextSp, hit, toast = 0, toastT = '';
+  const DEV_PASSWORD = '141210';
+  let st = 'ready', paused = false, twoPlayer = false, devMode = false, developerModalWasPaused = false;
+  let P, P2, obs, items, proj, boss, dist, biome, bossAt, t, scr, kills, bk, bonus, habit, nextSp, hit, platforms = [], toast = 0, toastT = '';
   // Efeitos visuais
   let parts = [], amb = [], shake = 0, fade = 0, lastBi = -1, dirty = true, shownScore = -1;
 
@@ -137,16 +147,29 @@
   const refreshStartHint = () => $('p2-hint-keys').classList.toggle('active', twoPlayer);
   const say = s => { toastT = s; toast = 150; };
   const swordOf = p => p.weapon === null ? null : SWORDS[p.weapon];
-  const createPlayer = (x = 120) => ({ x, y: GY, vy: 0, face: 1, hp: 5, en: 100, sw: 0, swc: 0, dash: 0, dcd: 0, inv: 0, duck: false, sh: false, step: 0, weapon: null, weaponTimer: 0, powerCd: 0, powerFx: null, windBoost: 0 });
+  const createPlayer = (x = 120) => ({ x, y: GY, vy: 0, grounded: true, face: 1, hp: 5, en: 100, sw: 0, swc: 0, dash: 0, dcd: 0, inv: 0, duck: false, sh: false, step: 0, weapon: null, weaponTimer: 0, powerCd: 0, powerFx: null, windBoost: 0 });
   const canDash = p => st === 'run' && !paused && p.hp > 0 && p.dcd <= 0 && p.en >= 20 && !p.dash;
   const playerList = () => (twoPlayer && P2) ? [P, P2] : [P];
+  const onFloor = p => p.grounded;
+  const resetAirPlatforms = () => {
+    platforms = [
+      { x: -24, w: 190, y: 278 }, { x: 202, w: 154, y: 230 },
+      { x: 390, w: 176, y: 270 }, { x: 600, w: 184, y: 218 },
+      { x: 818, w: 180, y: 262 },
+    ];
+  };
+  const placeOnAirPlatform = (p, index = 0) => {
+    const platform = platforms[0];
+    p.x = Math.max(50, Math.min(420, platform.x + platform.w * (.55 + index * .18)));
+    p.y = platform.y; p.vy = 0; p.grounded = true; p.duck = false;
+  };
   const pb = (p = P) => ({ x: p.x - 14, y: p.y - (p.duck ? 26 : 44), w: 28, h: p.duck ? 26 : 44 });
   const sb = (p = P) => {
     if (p.sw <= 0) return null;
     const range = swordOf(p)?.id === 'wind' ? 110 : 60;
     return { x: p.face > 0 ? p.x + 10 : p.x - range - 10, y: p.y - 46, w: range, h: 46 };
   };
-  const bb = () => ({ x: boss.x, y: GY - boss.h, w: boss.w, h: boss.h });
+  const bb = () => ({ x: boss.x, y: boss.y ?? GY - boss.h, w: boss.w, h: boss.h });
   const score = () => Math.floor(dist / 10) + bonus;
   const recoverLife = (p, amount = 1) => {
     if (!p || p.hp <= 0) return 0;
@@ -160,7 +183,7 @@
     P = createPlayer(120);
     P2 = twoPlayer ? createPlayer(160) : null;
     refreshStartHint();
-    obs = []; items = []; proj = []; boss = null;
+    obs = []; items = []; proj = []; boss = null; platforms = [];
     parts = []; amb = []; shake = 0; fade = 0;
     dist = 0; biome = 0; bossAt = 5000; t = 0; scr = 0; kills = 0; bk = 0; bonus = 0;
     habit = { j: 0, d: 0 }; nextSp = 60; hit = new Set();
@@ -169,7 +192,24 @@
 
   const show = id => $(id).classList.add('active');
   const hide = id => $(id).classList.remove('active');
-  const modalOpen = () => document.querySelector('#help-modal.active,#stats-modal.active');
+  const modalOpen = () => document.querySelector('#help-modal.active,#stats-modal.active,#developer-modal.active');
+  function openDeveloperModal() {
+    developerModalWasPaused = paused;
+    if (st === 'run') paused = true;
+    $('developer-password').value = '';
+    $('developer-error').textContent = '';
+    $('developer-modal').setAttribute('aria-hidden', 'false');
+    show('developer-modal');
+    $('developer-password').focus();
+    dirty = true;
+  }
+
+  function closeDeveloperModal() {
+    hide('developer-modal');
+    $('developer-modal').setAttribute('aria-hidden', 'true');
+    paused = developerModalWasPaused;
+    dirty = true;
+  }
 
   function start() {
     reset(); st = 'run'; paused = false;
@@ -186,6 +226,7 @@
   }
 
   function hurt(blockable, p = P, amount = 1) {
+    if (devMode) return;
     if (p.hp <= 0 || p.inv > 0 || p.dash > 0) return;
     if (blockable && p.sh && p.face === 1) {
       p.en = Math.max(0, p.en - 10); p.inv = 10;
@@ -208,14 +249,23 @@
     if (act('left', keys)) { p.x -= speed; p.face = -1; }
     if (act('right', keys)) { p.x += speed; p.face = 1; }
     const cr = act('crouch', keys);
-    p.duck = cr && p.y >= GY;
-    const wasAir = p.y < GY;
+    p.duck = cr && p.grounded;
+    const wasAir = !p.grounded;
+    const previousY = p.y;
+    p.grounded = false;
     p.vy += .7 + (cr && p.y < GY ? .9 : 0); p.y += p.vy;
-    if (p.y >= GY) {
-      p.y = GY; p.vy = 0;
+    let landingY = biome % BIOMES.length !== AIR_BIOME && p.y >= GY ? GY : null;
+    if (biome % BIOMES.length === AIR_BIOME && p.vy >= 0) {
+      for (const platform of platforms) {
+        const overlapsPlatform = p.x + 14 > platform.x && p.x - 14 < platform.x + platform.w;
+        if (overlapsPlatform && previousY <= platform.y && p.y >= platform.y && (landingY === null || platform.y < landingY)) landingY = platform.y;
+      }
+    }
+    if (landingY !== null) {
+      p.y = landingY; p.vy = 0; p.grounded = true;
       if (wasAir) puff(p.x, GY, 8, 'rgba(255,255,255,.5)');
     }
-    if (act('jump', keys) && p.y >= GY) { p.vy = -14; habit.j++; }
+    if (act('jump', keys) && p.grounded) { p.vy = -14; p.grounded = false; habit.j++; }
     if (p.dash > 0) { p.dash--; p.x += p.face * 8; if (t % 2 === 0) puff(p.x - p.face * 14, p.y - 20, 1, 'rgba(190,242,100,.6)', { s: .4 }); }
     p.x = Math.max(50, Math.min(boss ? W - 200 : 420, p.x));
     p.sh = act('shield', keys) && p.en > 0 && !p.dash;
@@ -235,9 +285,14 @@
 
   // ---------- Entrada ----------
   addEventListener('keydown', e => {
-    if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
+    if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'F3'].includes(e.code)) e.preventDefault();
     const rep = e.repeat; down.add(e.code);
     if (rep) return;
+    if (e.code === 'F3') {
+      if ($('developer-modal').classList.contains('active')) closeDeveloperModal();
+      else openDeveloperModal();
+      return;
+    }
     if (e.code === 'Digit2') {
       twoPlayer = !twoPlayer;
       reset();
@@ -249,13 +304,13 @@
     }
     if (st !== 'run') { if (e.code === 'Space' && !modalOpen()) start(); return; }
     if (paused) return;
-    if (K.jump.includes(e.code) && P.y >= GY) { P.vy = -14; habit.j++; }
+    if (K.jump.includes(e.code) && onFloor(P)) { P.vy = -14; P.grounded = false; habit.j++; }
     if (K.crouch.includes(e.code)) habit.d++;
     if (K.sword.includes(e.code) && P.swc <= 0) swingSword(P);
     if (K.dash.includes(e.code) && canDash(P)) { P.dash = 14; P.dcd = 70; P.en -= 20; }
     if (K.power.includes(e.code)) activatePower(P);
     if (twoPlayer) {
-      if (K2.jump.includes(e.code) && P2.y >= GY) { P2.vy = -14; habit.j++; }
+      if (K2.jump.includes(e.code) && onFloor(P2)) { P2.vy = -14; P2.grounded = false; habit.j++; }
       if (K2.crouch.includes(e.code)) habit.d++;
       if (K2.sword.includes(e.code) && P2.swc <= 0) swingSword(P2);
       if (K2.dash.includes(e.code) && canDash(P2)) { P2.dash = 14; P2.dcd = 70; P2.en -= 20; }
@@ -275,13 +330,16 @@
       const isCreature = Math.random() > obstacleBias;
       const pool = BIOMES[biome % BIOMES.length].encounters[isCreature ? 'creatures' : 'obstacles'];
       const encounter = pool[Math.floor(Math.random() * pool.length)];
-      const y = GY - encounter.h - (encounter.flight || 0);
-      obs.push({ ...encounter, creature: isCreature, airborne: !!encounter.flight, x: W + 20, y, baseY: y, phase: R(0, 7) });
+      const surface = biome % BIOMES.length === AIR_BIOME && platforms.length
+        ? platforms[Math.floor(Math.random() * platforms.length)].y : GY;
+      const y = surface - encounter.h - (encounter.flight || 0);
+      obs.push({ ...encounter, creature: isCreature, airborne: !!encounter.flight, x: W + 20, y, baseY: y, surfaceY: surface, phase: R(0, 7) });
     }
   }
   function spawnBoss() {
     const hp = 22 + biome * 18 + Math.max(0, biome - 1) * 12;
-    boss = { x: W - 170, w: 90, h: 100, vx: -1.8, moving: true, moveTimer: R(80, 130), pauseTimer: 0, hp, max: hp, s: 'idle', tm: 90, atk: null, n: 0, flash: 0, burn: 0, burnTick: 0, poison: 0, poisonTick: 0, freeze: 0, stunClock: 1200, stunTimer: 0 };
+    const airborne = biome % BIOMES.length === AIR_BIOME;
+    boss = { x: W - 170, y: airborne ? GY - 155 : undefined, airborne, w: 90, h: 100, vx: -1.8, moving: true, moveTimer: R(80, 130), pauseTimer: 0, hp, max: hp, s: 'idle', tm: 90, atk: null, n: 0, flash: 0, burn: 0, burnTick: 0, poison: 0, poisonTick: 0, freeze: 0, stunClock: 1200, stunTimer: 0 };
   }
   function killBoss() {
     puff(boss.x + boss.w / 2, GY - 50, 70, BIOMES[biome % BIOMES.length].bc, { s: 3 });
@@ -300,10 +358,16 @@
     }
     bossAt = dist + 5000; nextSp = 90;
     say(BIOMES[biome % BIOMES.length].n); save();
+    if (biome % BIOMES.length === AIR_BIOME) {
+      resetAirPlatforms();
+      playerList().forEach((p, index) => placeOnAirPlatform(p, index));
+    }
+    else platforms = [];
   }
 
   function damageBoss(amount) {
     if (!boss) return 0;
+    if (devMode) amount = boss.hp;
     const damage = Math.min(boss.hp, amount * (boss.stunTimer > 0 ? 1.5 : 1));
     boss.hp -= damage;
     return damage;
@@ -316,7 +380,7 @@
 
   function applyPowerHit(power) {
     if (!boss) return;
-    boss.hp -= power.damage;
+    damageBoss(power.damage);
     if (power.effect === 'burn') { boss.burn = 180; boss.burnTick = 0; }
     if (power.effect === 'freeze') { boss.freeze = 180; boss.s = 'idle'; boss.atk = null; boss.tm = 70; }
     if (power.effect === 'poison') { boss.poison = 270; boss.poisonTick = 0; }
@@ -445,6 +509,15 @@
       case 'tideBolt': launch(GY - 82, 32, 32, 'tide', '#0ea5e9', -8); break;
       case 'reefBurst': spread('reef', '#2dd4bf', GY - 24, 24, 22, 4); break;
       case 'mistBurst': rain('mist', '#bae6fd', 20, 34, 3); break;
+      case 'skyLance': launch(GY - 128, 58, 18, 'sun', '#fff1a8', -10); break;
+      case 'starRain': rain('sunShard', '#fff1a8', 18, 26, 3); break;
+      case 'radiantFan': spread('sunShard', '#facc15', GY - 30, 22, 22, 5); break;
+      case 'sunRay':
+        playerList().filter(p => p.hp > 0).forEach(p => proj.push({
+          x: Math.max(28, Math.min(W - 48, p.x - 10)), y: 28, w: 20, h: GY - 28,
+          kind: 'sunRay', c: '#fff7b2', vx: 0, vy: 0, life: 75, warmup: 34,
+        }));
+        break;
       default:
         launch(GY - 34, 52, 34, 'impact', BIOMES[biome % BIOMES.length].bc, vx);
         break;
@@ -455,18 +528,31 @@
   // ---------- Atualização ----------
   function step() {
     t++;
-    const wsp = 4.5 + Math.min(biome, 8) * .5 + Math.min(dist / 30000, 1.5);
+    const inAirBiome = biome % BIOMES.length === AIR_BIOME;
+    const wsp = inAirBiome ? 2.8 + Math.min(dist / 60000, .7) : 4.5 + Math.min(biome, 8) * .5 + Math.min(dist / 30000, 1.5);
     scr += wsp;
+    if (biome % BIOMES.length === AIR_BIOME) {
+      if (!platforms.length) resetAirPlatforms();
+      if (!boss) {
+        platforms.forEach(platform => { platform.x -= wsp * .7; });
+        while (platforms[platforms.length - 1].x < W) {
+          const previous = platforms[platforms.length - 1];
+          platforms.push({ x: previous.x + previous.w + R(36, 76), w: R(145, 190), y: R(214, 284) });
+        }
+        platforms = platforms.filter(platform => platform.x + platform.w > -30);
+      }
+    }
 
     // Efeitos visuais
     if (shake > 0) shake--;
     if (fade > 0) fade = Math.max(0, fade - .02);
     parts = parts.filter(p => { p.x += p.vx - wsp * .3; p.y += p.vy; p.vy += p.g; return --p.life > 0; });
-    if (t % 6 === 0 && P.y >= GY && P.hp > 0 && P.dash <= 0) puff(P.x - 10, GY, 1, 'rgba(255,255,255,.35)', { s: .5 });
+    if (t % 6 === 0 && P.grounded && P.hp > 0 && P.dash <= 0) puff(P.x - 10, P.y, 1, 'rgba(255,255,255,.35)', { s: .5 });
     const am = AMB[biome % BIOMES.length];
     if (am && t % 6 === 0 && amb.length < 40) {
       if (am.kind === 'fly') amb.push({ x: W + 10, y: R(120, GY - 20), vx: R(-.6, -.1), vy: 0, ph: R(0, 7), life: 400, r: 2, c: am.c, kind: 'fly' });
       else if (am.kind === 'snow') amb.push({ x: R(0, W + 60), y: -6, vx: R(-1.4, -.4), vy: R(.6, 1.6), ph: 0, life: 300, r: R(1.2, 2.6), c: am.c, kind: 'snow' });
+      else if (am.kind === 'star') amb.push({ x: R(0, W), y: R(30, GY - 20), vx: R(-.2, .2), vy: 0, ph: R(0, 7), life: 180, r: R(1.2, 2.4), c: am.c, kind: 'star' });
       else amb.push({ x: R(0, W), y: GY, vx: R(-1, 0), vy: R(-1.8, -.6), ph: 0, life: 120, r: R(1.5, 3), c: am.c, kind: 'ember' });
     }
     amb = amb.filter(a => {
@@ -476,6 +562,17 @@
 
     updatePlayer(P, K);
     if (twoPlayer && P2) updatePlayer(P2, K2);
+    if (inAirBiome) {
+      for (const [index, p] of playerList().entries()) {
+        if (p.y > H && p.hp > 0) {
+          if (devMode) placeOnAirPlatform(p, index);
+          else {
+            p.inv = 0; p.dash = 0;
+            hurt(false, p, p.hp);
+          }
+        }
+      }
+    }
     if (toast > 0) toast--;
 
     if (!boss) {
@@ -528,6 +625,7 @@
     });
 
     proj = proj.filter(p => {
+      if (p.warmup > 0) { p.warmup--; return true; }
       p.x += p.vx || 0; p.y += p.vy || 0;
       if (p.life !== undefined) p.life--;
       if (p.x + p.w < -40 || p.x > W + 40 || p.y >= GY || p.y + p.h < -30 || p.life <= 0) return false;
@@ -542,6 +640,7 @@
     });
 
     if (boss) {
+      if (boss.airborne) boss.y = GY - boss.h - 55 + Math.sin(t * .045) * 22;
       if (boss.stunTimer <= 0 && boss.freeze <= 0) {
         if (boss.s !== 'rec') {
           if (boss.moving) {
@@ -596,7 +695,9 @@
   function drawDino(p, color = '#2e7d32') {
     // Sombra no chão (diminui conforme o dino sobe)
     const k = 1 - Math.min(1, (GY - p.y) / 150);
-    X.fillStyle = 'rgba(0,0,0,.25)'; X.beginPath(); X.ellipse(p.x, GY + 3, 20 * k + 6, 4 * k + 1.5, 0, 0, 7); X.fill();
+    if (p.grounded) {
+      X.fillStyle = 'rgba(0,0,0,.25)'; X.beginPath(); X.ellipse(p.x, p.y + 3, 20 * k + 6, 4 * k + 1.5, 0, 0, 7); X.fill();
+    }
 
     X.save(); X.translate(p.x, p.y); X.scale(p.face, 1);
     if (p.inv > 0 && (t >> 2) & 1) X.globalAlpha = .4;
@@ -949,6 +1050,25 @@
         X.strokeStyle = 'rgba(255,255,255,.6)'; X.lineWidth = 1.2; X.beginPath(); X.arc(40 + i * 18 + Math.sin(bt * .2) * 3, 84 - bt * .5, 2.5 + i * .6, 0, 7); X.stroke();
       }
     },
+    // 8 — Pterodáctilo Radiante
+    (P, E, eye, T) => {
+      const flap = Math.sin(t * .22) * 13, leg = Math.sin(t * .16) * 3;
+      P([[56, 54], [88, 34 - flap], [78, 64 - flap], [61, 75]], '#a66bda');
+      P([[52, 53], [22, 31 + flap], [34, 63 + flap], [60, 75]], '#7c4dcc');
+      X.strokeStyle = T('#f4d8ff'); X.lineWidth = 2; X.beginPath();
+      X.moveTo(55, 55); X.lineTo(79, 39 - flap); X.moveTo(52, 58); X.lineTo(31, 39 + flap); X.stroke();
+      E(56, 67, 25, 16, '#8b5ac7'); E(47, 74, 15, 6, '#d8b4fe');
+      P([[70, 68], [96, 78], [103, 74], [91, 83], [73, 78]], '#7240ad');
+      P([[42, 75], [36, 98 + leg], [47, 98 + leg], [54, 77]], '#6d3ca8');
+      P([[65, 75], [63, 98 - leg], [74, 98 - leg], [77, 73]], '#6d3ca8');
+      P([[38, 48], [31, 36], [16, 29], [4, 33], [0, 40], [16, 46], [34, 57]], '#ad76dc');
+      P([[2, 39], [-12, 42], [2, 46]], '#fff0b2');
+      P([[21, 33], [16, 22], [28, 31]], '#f6d365');
+      P([[30, 34], [34, 21], [38, 36]], '#f6d365');
+      X.strokeStyle = T('#522c7e'); X.lineWidth = 2.4; X.lineCap = 'round'; X.beginPath(); X.moveTo(11, 34); X.lineTo(27, 35); X.stroke();
+      eye(18, 38, '#fff3a6', 4);
+      for (let i = 0; i < 3; i++) star(35 + i * 19, 53 + Math.sin(t * .12 + i) * 3, 2.5, '#fff0a8');
+    },
   ];
 
   function drawBoss() {
@@ -970,7 +1090,9 @@
     const bob = stun ? 0 : Math.sin(t * .08) * 2 - (boss.moving ? Math.abs(Math.sin(t * .2)) * 2 : 0);
 
     // sombra e aura de ataque
-    X.fillStyle = 'rgba(0,0,0,.3)'; X.beginPath(); X.ellipse(x + w / 2, GY + 3, w * .62, 6, 0, 0, 7); X.fill();
+    if (!boss.airborne) {
+      X.fillStyle = 'rgba(0,0,0,.3)'; X.beginPath(); X.ellipse(x + w / 2, GY + 3, w * .62, 6, 0, 0, 7); X.fill();
+    }
     X.save(); X.translate(x, y + bob);
     BOSS_ART[biomeIndex](P, E, eye, T);
     if (boss.freeze > 0) {
@@ -1152,6 +1274,24 @@
         glow(cx, cy, w * .9, '45,212,191', .4); pgo(pts, lg(x, y, x + w, y + h, '#99f6e4', '#0d9488')); ell(cx, cy, 3, 3, '#fda4af');
         break;
       }
+      case 'sunShard':
+        glow(cx, cy, Math.max(w, h) * .8, '255,241,168', .55);
+        star(cx, cy, Math.min(w, h) * (.55 + Math.sin(t * .2) * .04), '#fff4bd');
+        ell(cx, cy, 3, 3, '#ffffff');
+        break;
+      case 'sunRay':
+        if (p.warmup > 0) {
+          X.fillStyle = `rgba(255,241,168,${.12 + Math.sin(t * .5) * .06})`; X.fillRect(x - 7, y, w + 14, h);
+          X.setLineDash([6, 8]); X.strokeStyle = 'rgba(255,248,200,.8)'; X.lineWidth = 2;
+          X.beginPath(); X.moveTo(cx, y); X.lineTo(cx, y + h); X.stroke(); X.setLineDash([]);
+        } else {
+          glow(cx, y + h / 2, 24, '255,240,168', .55);
+          X.fillStyle = lg(0, y, 0, y + h, 'rgba(255,255,255,.9)', 'rgba(255,202,74,.72)');
+          X.fillRect(x, y, w, h);
+          X.fillStyle = 'rgba(255,255,255,.8)'; X.fillRect(x + w * .38, y, w * .24, h);
+          X.fillStyle = 'rgba(255,248,200,.28)'; X.fillRect(x - 8, y, w + 16, h);
+        }
+        break;
       default:
         glow(cx, cy, Math.max(w, h) * .8, rgbOf(c), .35); rr(x, y, w, h, 5, c); X.fillStyle = 'rgba(255,255,255,.3)'; X.fillRect(x + 3, y + 2, w - 6, 3);
     }
@@ -1213,6 +1353,36 @@
 
   const SPR = {
     // ===== Criaturas =====
+    cloudManta(w, h, f) {
+      const flap = Math.sin(t * .22) * 7;
+      pgo([[22, 16], [1, 2 + flap], [8, 24], [18, 19]], '#b6a1e8', '#6b5ba3');
+      pgo([[24, 16], [w - 1, 2 - flap], [w - 8, 24], [28, 19]], '#d8ccff', '#6b5ba3');
+      X.fillStyle = lg(0, 7, 0, h, '#fff8dc', '#a88ed6'); X.beginPath(); X.ellipse(w / 2, 18, 13, 9, 0, 0, 7); X.fill();
+      ell(w / 2, 18, 9, 3, 'rgba(255,255,255,.55)'); eyeA(w / 2 - 3, 17, 2.2, '#7c3aed');
+      pgo([[w / 2 + 5, 18], [w / 2 + 11, 20], [w / 2 + 5, 21]], '#f5cb6b');
+      for (let i = 0; i < 3; i++) star(8 + i * 15, 5 + Math.sin(t * .1 + i) * 2, 1.8, '#fff1a8');
+    },
+    sunWisp(w, h) {
+      const pulse = 1 + Math.sin(t * .16) * .12;
+      glow(w / 2, h / 2, 26 * pulse, '255,224,130', .55);
+      for (let i = 0; i < 8; i++) {
+        const a = i * Math.PI / 4 + t * .025, r = 11 * pulse;
+        star(w / 2 + Math.cos(a) * r, h / 2 + Math.sin(a) * r, 3.5, '#fff1a8');
+      }
+      ell(w / 2, h / 2, 9 * pulse, 11 * pulse, '#fff8dc');
+      eyeA(w / 2 - 3, h / 2, 2, '#eab308'); eyeA(w / 2 + 4, h / 2, 2, '#eab308', -1);
+    },
+    skySentinel(w, h, f) {
+      const hover = Math.sin(t * .16) * 2;
+      X.save(); X.translate(0, hover);
+      pgo([[20, 1], [29, 13], [22, 19], [11, 12]], '#f5cb6b', '#a16207');
+      pgo([[20, 3], [24, 12], [20, 17], [16, 12]], '#fff7c2', '#d4a72c');
+      pgo([[8, 12], [15, 15], [12, 31], [4, 25]], '#9b7acb', '#59418a');
+      pgo([[28, 12], [21, 15], [25, 31], [33, 25]], '#b9a2e8', '#59418a');
+      ell(19, 17, 6, 8, '#f4eaff'); eyeA(19, 16, 2.2, '#facc15');
+      polygon([[14, 23], [20, 20 + f * .03], [26, 23], [20, 28]], '#f5cb6b');
+      X.restore();
+    },
     forestWisp(w, h, f) {
       glow(15, 13, 26, '134,239,172', .55 + Math.sin(t * .1) * .1);
       for (let i = 0; i < 4; i++) ell(24 + i * 3 + Math.sin(t * .2 + i) * 1.5, 17 + i * 2.2, 4 - i * .8, 3 - i * .5, `rgba(134,239,172,${.5 - i * .12})`);
@@ -1488,13 +1658,39 @@
         X.strokeStyle = 'rgba(255,255,255,.7)'; X.lineWidth = 1; X.beginPath(); X.moveTo(i * 10 + 4, 4); X.lineTo(i * 10 + 3, h - 6); X.stroke();
       }
     },
+    lightSpire(w, h) {
+      glow(w / 2, h / 3, 28, '255,229,153', .3 + Math.sin(t * .12) * .08);
+      pgo([[2, h], [10, h * .38], [16, h * .32], [w / 2, 0], [w - 16, h * .32], [w - 10, h * .38], [w - 2, h]], lg(0, 0, w, h, '#fff7d1', '#b69be8'), '#8065ad');
+      polygon([[w / 2, 5], [w / 2 - 4, h * .44], [w / 2 + 2, h * .7], [w / 2 + 1, h]], 'rgba(255,255,255,.55)');
+    },
+    stormCloud(w, h, f) {
+      glow(w / 2, h / 2, w * .55, '180,191,255', .22);
+      X.fillStyle = lg(0, 2, 0, h, '#e4e1fa', '#7776a8'); X.beginPath();
+      X.ellipse(w * .3, h * .62, w * .24, h * .25, 0, 0, 7); X.ellipse(w * .53, h * .43, w * .27, h * .4, 0, 0, 7); X.ellipse(w * .76, h * .62, w * .22, h * .26, 0, 0, 7); X.fill();
+      for (let i = 0; i < 2; i++) {
+        const bx = w * (.35 + i * .32), by = h * .45 + Math.sin(t * .08 + i) * 3;
+        pgo([[bx, by], [bx - 4, by + 10], [bx + 1, by + 10], [bx - 2, by + 19], [bx + 7, by + 7], [bx + 3, by + 7]], '#fff1a8', 'rgba(255,255,255,.2)');
+      }
+    },
+    cloudMine(w, h) {
+      const pulse = 1 + Math.sin(t * .16) * .12;
+      glow(w / 2, h / 2, 25 * pulse, '255,239,177', .35);
+      ell(w / 2, h / 2, 12 * pulse, 12 * pulse, '#f5d477');
+      X.strokeStyle = '#fff8dc'; X.lineWidth = 2;
+      X.beginPath(); X.arc(w / 2, h / 2, 18 * pulse, 0, 7); X.stroke();
+      for (let i = 0; i < 6; i++) {
+        const a = i * Math.PI / 3 + t * .03, x = w / 2 + Math.cos(a) * 19, y = h / 2 + Math.sin(a) * 19;
+        star(x, y, 3, '#fff4bd');
+      }
+      ell(w / 2 - 3, h / 2 - 2, 3, 2, '#fff');
+    },
   };
   SPR.bat = SPR.caveBat;
 
   function drawObstacle(o) {
     const w = o.w, h = o.h, f = Math.sin(t * .4 + o.phase) * 8, wk = Math.sin(t * .3 + o.phase);
     const k = 1 - Math.min(1, Math.max(0, GY - o.y - h) / 160);
-    X.fillStyle = `rgba(0,0,0,${.1 + .18 * k})`; X.beginPath(); X.ellipse(o.x + w / 2, GY + 3, w * (.28 + .26 * k), 2 + 2.5 * k, 0, 0, 7); X.fill();
+    X.fillStyle = `rgba(0,0,0,${.1 + .18 * k})`; X.beginPath(); X.ellipse(o.x + w / 2, (o.surfaceY ?? GY) + 3, w * (.28 + .26 * k), 2 + 2.5 * k, 0, 0, 7); X.fill();
     X.save(); X.translate(o.x, o.y);
     const art = SPR[o.k];
     if (art) art(w, h, f, wk, o);
@@ -1549,6 +1745,23 @@
     X.lineTo(W, GY); X.closePath(); X.fill();
   }
 
+  function drawAirPlatforms() {
+    platforms.forEach(platform => {
+      const { x, y, w } = platform;
+      glow(x + w / 2, y + 10, w * .55, '255,239,177', .16);
+      X.fillStyle = 'rgba(24,22,63,.18)'; X.beginPath(); X.ellipse(x + w / 2, y + 13, w * .48, 8, 0, 0, 7); X.fill();
+      X.fillStyle = lg(0, y, 0, y + 28, '#fff0bd', '#8d79be');
+      X.beginPath(); X.moveTo(x, y + 6); X.quadraticCurveTo(x + w * .15, y - 2, x + w * .3, y + 4);
+      X.quadraticCurveTo(x + w * .55, y - 3, x + w * .72, y + 3); X.quadraticCurveTo(x + w * .9, y - 1, x + w, y + 5);
+      X.lineTo(x + w - 12, y + 24); X.lineTo(x + w * .76, y + 30); X.lineTo(x + w * .3, y + 25); X.lineTo(x + 10, y + 21); X.closePath(); X.fill();
+      X.strokeStyle = '#fff6d8'; X.lineWidth = 2; X.beginPath(); X.moveTo(x + 3, y + 5); X.quadraticCurveTo(x + w * .2, y - 1, x + w * .38, y + 4); X.quadraticCurveTo(x + w * .65, y - 2, x + w - 3, y + 4); X.stroke();
+      for (let i = 0; i < Math.floor(w / 38); i++) {
+        const px = x + 17 + i * 36;
+        if (px < x + w - 10) rr(px, y + 13 + (i % 2) * 4, 12, 3, 2, 'rgba(92,71,134,.35)');
+      }
+    });
+  }
+
   const bgCache = [], heartGrad = {};
   function draw() {
     const bi = biome % BIOMES.length, b = BIOMES[bi];
@@ -1561,15 +1774,20 @@
 
     if (!bg.ok) { g.addColorStop(0, b.sky[0]); g.addColorStop(1, b.sky[1]); bg.gnd.addColorStop(0, 'rgba(255,255,255,.12)'); bg.gnd.addColorStop(1, 'rgba(0,0,0,.45)'); bg.ok = true; }
     X.fillStyle = g; X.fillRect(-12, -12, W + 24, H + 24);
-    ridge(.08, 110, 34, 'rgba(0,0,0,.10)', 1);
-    ridge(.2, 60, 22, 'rgba(0,0,0,.18)', 4);
-    ridge(.4, 25, 12, 'rgba(0,0,0,.25)', 9);
+    if (bi !== AIR_BIOME) {
+      ridge(.08, 110, 34, 'rgba(0,0,0,.10)', 1);
+      ridge(.2, 60, 22, 'rgba(0,0,0,.18)', 4);
+      ridge(.4, 25, 12, 'rgba(0,0,0,.25)', 9);
+    }
 
-    X.fillStyle = b.gr; X.fillRect(-12, GY, W + 24, H - GY + 12);
-    X.fillStyle = bg.gnd; X.fillRect(-12, GY, W + 24, H - GY + 12);
-    X.fillStyle = 'rgba(255,255,255,.25)'; X.fillRect(-12, GY, W + 24, 2);
-    X.fillStyle = 'rgba(0,0,0,.18)';
-    for (let i = 0; i < 20; i++) X.fillRect(i * 60 - (scr % 60), GY + 12 + (i % 3) * 14, 20, 3);
+    if (bi === AIR_BIOME) drawAirPlatforms();
+    else {
+      X.fillStyle = b.gr; X.fillRect(-12, GY, W + 24, H - GY + 12);
+      X.fillStyle = bg.gnd; X.fillRect(-12, GY, W + 24, H - GY + 12);
+      X.fillStyle = 'rgba(255,255,255,.25)'; X.fillRect(-12, GY, W + 24, 2);
+      X.fillStyle = 'rgba(0,0,0,.18)';
+      for (let i = 0; i < 20; i++) X.fillRect(i * 60 - (scr % 60), GY + 12 + (i % 3) * 14, 20, 3);
+    }
 
     // Partículas ambientes do bioma
     amb.forEach(a => {
@@ -1648,6 +1866,11 @@
     renderHP(P, 10, '#ef4444');
     if (twoPlayer && P2) renderHP(P2, 560, '#60a5fa');
 
+    if (devMode) {
+      X.textAlign = 'right'; X.font = 'bold 10px sans-serif'; X.fillStyle = '#fff1a8';
+      otext('DEV: IMORTAL + DANO INFINITO', W - 12, H - 12);
+    }
+
     if (toast > 0) { X.globalAlpha = Math.min(1, toast / 40); X.textAlign = 'center'; X.font = 'bold 28px sans-serif'; X.fillStyle = '#fff'; X.lineWidth = 5; otext(toastT, W / 2, 80); X.globalAlpha = 1; }
   }
 
@@ -1669,6 +1892,19 @@
   };
   document.querySelectorAll('[data-close]').forEach(b => b.onclick = closeM);
   $('btn-new-game-modal').onclick = start;
+  $('developer-form').addEventListener('submit', e => {
+    e.preventDefault();
+    if ($('developer-password').value !== DEV_PASSWORD) {
+      $('developer-error').textContent = 'Senha incorreta. Tente novamente.';
+      $('developer-password').select();
+      return;
+    }
+    devMode = true;
+    playerList().forEach(p => { p.hp = 5; p.inv = 0; });
+    say('Modo desenvolvedor ativado!');
+    closeDeveloperModal();
+  });
+  $('developer-cancel').onclick = closeDeveloperModal;
 
   reset(); requestAnimationFrame(loop);
 })();
