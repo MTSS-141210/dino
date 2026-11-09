@@ -298,6 +298,136 @@
       "nextSp = R(50, 110) - Math.min(biome * 4, 25);",
       "nextSp = inAirBiome ? R(110, 190) : R(50, 110) - Math.min(biome * 4, 25);",
     ],
+
+    // ===== NOVOS DINOS, CÓDIGOS, MAPAS E ESCUDO =====
+    ["S.spino |= 0;", "S.maps |= 0; if (!Array.isArray(S.unl)) S.unl = [];"],
+
+    ["k || p.type === 'spino';", "k || p.type === 'spino' || p.type === 'dev';"],
+    ["p.type === 'spino' ? SPINO :", "EXTRA.find(d => d.id === p.type) ||"],
+    ["...(S.spino ? [SPINO] : [])", "...EXTRA.filter(d => S.unl.includes(d.id))"],
+    ["...(S.won ? ['map'] : [])", "...(S.maps ? ['map'] : [])"],
+    [
+      "$('select-msg').textContent = ''; renderSelect(); show('select-modal'); dirty = true;",
+      "$('select-code').maxLength = 8; $('select-msg').textContent = ''; renderSelect(); show('select-modal'); dirty = true;",
+    ],
+
+    [
+      "function dinoAbility(p) {",
+      `const CODES = { 1224: 'carno', 1996: 'brachio', 1322: 'mammoth', 6767: 'tri', 101214: 'spino', 51212514: 'dev' };
+  const EXTRA = [
+    { id: 'carno', n: 'Carnotauro', c: '#b91c1c', d: 'Investida (J / 4) causa 50% do dano da espada.' },
+    { id: 'brachio', n: 'Braquiossauro', c: '#4d9a6a', d: 'Alcance da espada bem maior.' },
+    { id: 'mammoth', n: 'Mamute', c: '#8b5e3c', d: '15% de chance de congelar o alvo ao acertar.' },
+    { id: 'tri', n: 'Triceratops', c: '#a3a05a', d: 'Ao cair no chão: dano em área (15% da espada) e nuvem de poeira. Recarga 50s.' },
+    { id: 'spino', n: 'Espinossauro', c: '#6b7280', d: 'Lança um projétil de água (O / 8).' },
+    { id: 'dev', n: 'Dino Dev', c: '#facc15', d: 'Vida e dano infinitos e todas as habilidades.' },
+  ];
+  const ADAM = new Image(); ADAM.src = 'img/adam-sandler.png';
+
+  function tryCode(v, m) {
+    if (v === '777') { S.maps = 1; save(); m.textContent = 'Mapas liberados!'; return true; }
+    if (!Object.prototype.hasOwnProperty.call(CODES, v)) return false;
+    const id = CODES[v];
+    if (!S.unl.includes(id)) S.unl.push(id);
+    save(); m.textContent = EXTRA.find(d => d.id === id).n + ' desbloqueado!'; return true;
+  }
+
+  function carnoHit(p) {
+    if (p.dashHit || !boss || !has(p, 'carno')) return;
+    if (!ov({ x: p.x - 22, y: p.y - 44, w: 44, h: 44 }, bb())) return;
+    p.dashHit = 1; lastHit = p;
+    const d = damageBoss(.5 * (p.weapon === null ? 1 : 1.6));
+    p.pts += Math.ceil(d * 2); boss.flash = 6;
+    puff(boss.x + boss.w / 2, p.y - 30, 10, '#fff', { s: 2 });
+    if (boss.hp <= 0) killBoss();
+  }
+
+  function triLand(p) {
+    p.abCd = p.type === 'dev' ? 45 : 3000; lastHit = p;
+    if (boss && Math.abs(boss.x + boss.w / 2 - p.x) < 170) {
+      const d = damageBoss(.15 * (p.weapon === null ? 1 : 1.6));
+      p.pts += Math.ceil(d * 2); boss.flash = 6;
+      if (boss.hp <= 0) killBoss();
+    }
+    obs = obs.filter(o => {
+      if (o.creature && Math.abs(o.x + o.w / 2 - p.x) < 170) { kills++; bonus += 10; p.pts += 10; return false; }
+      return true;
+    });
+    puff(p.x, GY - 4, 34, '#d6c7a1', { s: 3, g: .02 });
+    puff(p.x, GY - 10, 16, '#a8956a', { s: 2, g: .01 });
+    shake = Math.max(shake, 8); say('Nuvem de poeira!');
+  }
+
+  function dinoAbility(p) {`,
+    ],
+
+    ["const sh = has(p, 'rex'), ec = has(p, 'para');", "const sh = has(p, 'rex'), ec = has(p, 'para'), wa = has(p, 'spino');"],
+    ["!(sh || ec)) return;", "!(sh || ec || wa)) return;"],
+    ["p.abCd = sh ? 3000 : 900; lastHit = p;", "p.abCd = p.type === 'dev' ? 45 : sh ? 3000 : wa ? 150 : 900; lastHit = p;"],
+    [
+      "say(sh && ec ? 'Onda de choque + Eco!' : sh ? 'Onda de choque!' : 'Eco paralisante!');",
+      "if (wa) proj.push({ x: p.x + p.face * 18, y: p.y - 40, w: 26, h: 26, vx: p.face * 9, vy: 0, c: '#38bdf8', kind: 'tide', life: 120, friendly: true, shock: true, owner: p, power: { damage: 2 } });\n    say(wa && !sh && !ec ? 'Jato de água!' : sh && ec ? 'Onda de choque + Eco!' : sh ? 'Onda de choque!' : 'Eco paralisante!');",
+    ],
+
+    ["if (has(p, 'rex') || has(p, 'para')) {", "if (has(p, 'rex') || has(p, 'para') || has(p, 'spino') || has(p, 'tri')) {"],
+    [
+      "`HABILIDADE PRONTA (${p === P ? 'O' : '8'})`",
+      "(p.type === 'tri' ? 'POEIRA PRONTA (AO CAIR)' : `HABILIDADE PRONTA (${p === P ? 'O' : '8'})`)",
+    ],
+
+    ["if (p.dash > 0) { p.dash--; p.x += p.face * 8;", "if (p.dash > 0) { p.dash--; if (p.dash === 13) p.dashHit = 0; carnoHit(p); p.x += p.face * 8;"],
+    ["const range = swordOf(p)?.id === 'wind' ? 110 : 60;", "const range = (swordOf(p)?.id === 'wind' ? 110 : 60) * (has(p, 'brachio') ? 1.7 : 1);"],
+    [
+      "const reach = swing ? (swd?.id === 'wind' ? 100 : 55) : 34;",
+      "const reach = (swing ? (swd?.id === 'wind' ? 100 : 55) : 34) * (has(p, 'brachio') ? 1.7 : 1);",
+    ],
+    [
+      "if (swordOf(p)?.id === 'blood') recoverLife(p, damage);",
+      "if (has(p, 'mammoth') && boss && Math.random() < .15) { boss.freeze = 180; boss.s = 'idle'; boss.atk = null; boss.tm = 70; say('Congelou!'); }\n    if (swordOf(p)?.id === 'blood') recoverLife(p, damage);",
+    ],
+    [
+      "p.y = landingY; p.vy = 0; p.grounded = true; p.jumps = 0;",
+      "const fallV = p.vy; p.y = landingY; p.vy = 0; p.grounded = true; p.jumps = 0; if (wasAir && fallV > 6 && has(p, 'tri') && p.abCd <= 0) triLand(p);",
+    ],
+
+    [
+      "drawDinoShape(X, p.type || 'rex', color, t, lg, d);",
+      "if (p.type === 'dev' && ADAM.complete && ADAM.naturalWidth) X.drawImage(ADAM, -24, -64, 48, 64); else drawDinoShape(X, p.type || 'rex', color, t, lg, d);",
+    ],
+    [
+      "drawDinoShape(c2d, d.id, d.c, 0, 0, false);",
+      "if (d.id === 'dev' && ADAM.naturalWidth) c2d.drawImage(ADAM, -26, -68, 52, 68); else drawDinoShape(c2d, d.id, d.c, 0, 0, false);",
+    ],
+    [
+      "hide('select-modal'); reset(); st = 'ready';",
+      "devMode = choice.slice(0, twoPlayer ? 2 : 1).includes('dev'); hide('select-modal'); reset(); st = 'ready';",
+    ],
+
+    [
+      "if (v === UNLOCK_CODE) { S.spino = 1; save(); m.textContent = 'Espinossauro desbloqueado!'; e.target.value = ''; secretCode = ''; renderSelect(); }",
+      "if (tryCode(v, m)) { if (v === '777' && !steps.includes('map')) steps.push('map'); e.target.value = ''; secretCode = ''; renderSelect(); }",
+    ],
+    [
+      "else if (v === DEV_PASSWORD) { devMode = true; m.textContent = 'Vida e dano infinitos ativados!'; e.target.value = ''; secretCode = ''; }",
+      "",
+    ],
+    [
+      "else if (v.length >= 6) { m.textContent = 'Código inválido.'; e.target.value = ''; secretCode = ''; }",
+      "else if (v && !Object.keys(CODES).concat('777').some(c => c.startsWith(v))) { m.textContent = 'Código inválido.'; e.target.value = ''; secretCode = ''; }",
+    ],
+    ["if (e.code === 'F3') {", "if (false) {"],
+
+    [
+      "S.won = 1; save();",
+      "S.won = 1; save();\n      out.push(...EXTRA.filter(d => d.id !== 'dev').map(d => d.n + ': ' + Object.keys(CODES).find(k => CODES[k] === d.id)));",
+    ],
+
+    ["p.sh = act('shield', keys) && p.en > 0 && !p.dash;", "p.sh = act('shield', keys) && p.en > 0 && !p.dash; p.shT = p.sh ? (p.shT || 0) + 1 : 0;"],
+    ["if (blockable && p.sh && p.face === 1) {", "if (blockable && p.sh) { const perfect = p.shT <= 10;"],
+    [
+      "p.en = Math.max(0, p.en - 10); p.inv = 10;",
+      "p.en = Math.max(0, p.en - (perfect ? 0 : 8)); p.inv = perfect ? 40 : 10; if (perfect) say('Bloqueio perfeito!');",
+    ],
   ];
 
   const fail = (msg) => {
