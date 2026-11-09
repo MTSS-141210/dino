@@ -1,6 +1,8 @@
 (() => {
-  const SCRIPT_SRC = document.currentScript && document.currentScript.src;
-  const BASE = new URL("index.js", SCRIPT_SRC || location.href).href;
+  const SCRIPT_SRC =
+    Array.from(document.scripts).find((s) => /game\.js(?:[?#]|$)/.test(s.src))?.src ||
+    new URL("js/game.js", location.href).href;
+  const BASE = new URL("index.js", SCRIPT_SRC).href;
 
   const HTML_AFTER_RESULT =
     '\n      <div id="secret-msg" class="secret-box" hidden><\/div>';
@@ -192,6 +194,66 @@
       "const swd = swordOf(p), swing = p.sw > 0;",
       "X.globalAlpha = _ga; if (d) X.translate(6, 9); const swd = swordOf(p), swing = p.sw > 0;",
     ],
+
+    // ===== SENHA COM * =====
+    [
+      "$('select-code').addEventListener('input', e => {\n    const v = e.target.value.trim(), m = $('select-msg');",
+      "let secretCode = '';\n  $('select-code').addEventListener('input', e => {\n    const raw = e.target.value; secretCode = raw.length <= secretCode.length ? secretCode.slice(0, raw.length) : secretCode + raw.slice(secretCode.length); e.target.value = '*'.repeat(secretCode.length);\n    const v = secretCode, m = $('select-msg');",
+    ],
+    [
+      "m.textContent = 'Espinossauro desbloqueado!'; e.target.value = '';",
+      "m.textContent = 'Espinossauro desbloqueado!'; e.target.value = ''; secretCode = '';",
+    ],
+    [
+      "m.textContent = 'Vida e dano infinitos ativados!'; e.target.value = '';",
+      "m.textContent = 'Vida e dano infinitos ativados!'; e.target.value = ''; secretCode = '';",
+    ],
+    [
+      "else if (v.length >= 6) m.textContent = 'Código inválido.';",
+      "else if (v.length >= 6) { m.textContent = 'Código inválido.'; e.target.value = ''; secretCode = ''; }",
+    ],
+
+    // ===== CUTSCENE: mais segura + pontos na mesma tela =====
+    [
+      "if (victory) playCastleCutscene(); else show('game-modal');",
+      "if (victory) { try { playCastleCutscene(); } catch (err) { console.error(err); cutOn = false; show('game-modal'); } } else show('game-modal');",
+    ],
+    [
+      "const tick = now => {",
+      "const tick = now => { try { tick2(now); } catch (err) { console.error(err); skipCut(); } }\n    const tick2 = now => {",
+    ],
+    [
+      "g.fillStyle = '#d9f99d'; g.font = 'bold 22px sans-serif'; tx('Pontos: ' + pts, 260, 170);",
+      "",
+    ],
+    [
+      "const ta = clamp((f - fLast - 40) / 30);",
+      "g.globalAlpha = 1; g.fillStyle = 'rgba(0,0,0,.6)'; g.fillRect(100, 14, 320, 52); g.strokeStyle = '#fde047'; g.lineWidth = 2; g.strokeRect(100, 14, 320, 52);\n      g.textAlign = 'center'; g.fillStyle = '#d9f99d'; g.font = 'bold 11px sans-serif'; g.fillText('PONTOS', 260, 32); g.fillStyle = '#fff'; g.font = 'bold 20px sans-serif'; g.fillText(String(pts), 260, 57);\n      const ta = clamp((f - fLast - 40) / 30);",
+    ],
+
+    // ===== ORBES NAS PLATAFORMAS =====
+    [
+      "const pl = platforms.find(q => i.x >= q.x && i.x <= q.x + q.w) || platforms[platforms.length - 1];",
+      "const free = platforms.filter(q => q.x + q.w > 30 && !items.some(o => o !== i && o.plat === q)), pool = free.length ? free : platforms, pl = pool.reduce((a, q) => Math.abs(q.x + q.w / 2 - i.x) < Math.abs(a.x + a.w / 2 - i.x) ? q : a);",
+    ],
+    [
+      "i.off = Math.max(14, Math.min(pl.w - 14, i.x - pl.x)); i.y = pl.y - 24;",
+      "i.off = pl.w / 2 + R(-30, 30); i.y = pl.y - 22;",
+    ],
+
+    // ===== MENOS OBSTÁCULOS NA ÚLTIMA FASE =====
+    [
+      "if (used.length >= 2) return true;",
+      "if (used.length >= 1) return true;",
+    ],
+    [
+      "const r = Math.random();\n    if (r < .2) {",
+      "const r = Math.random();\n    if (r >= .2 && Math.random() < .3) return true;\n    if (r < .2) {",
+    ],
+    [
+      "nextSp = R(50, 110) - Math.min(biome * 4, 25);",
+      "nextSp = inAirBiome ? R(110, 190) : R(50, 110) - Math.min(biome * 4, 25);",
+    ],
   ];
 
   const fail = (msg) => {
@@ -214,11 +276,12 @@
     }
     for (const [a, b] of JS_PATCH) {
       const i = code.indexOf(a);
-      if (i < 0)
-        return fail(
-          "Trecho não encontrado no index.js (arquivo diferente do esperado?):\n" +
-            a.slice(0, 100),
+      if (i < 0) {
+        console.warn(
+          "Patch ignorado (trecho não encontrado no index.js):\n" + a.slice(0, 80),
         );
+        continue;
+      }
       code = code.slice(0, i) + b + code.slice(i + a.length);
     }
     const style = document.createElement("style");
