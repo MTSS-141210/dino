@@ -230,6 +230,30 @@
       "const ta = clamp((f - fLast - 40) / 30);",
       "g.globalAlpha = 1; g.fillStyle = 'rgba(0,0,0,.6)'; g.fillRect(100, 14, 320, 52); g.strokeStyle = '#fde047'; g.lineWidth = 2; g.strokeRect(100, 14, 320, 52);\n      g.textAlign = 'center'; g.fillStyle = '#d9f99d'; g.font = 'bold 11px sans-serif'; g.fillText('PONTOS', 260, 32); g.fillStyle = '#fff'; g.font = 'bold 20px sans-serif'; g.fillText(String(pts), 260, 57);\n      const ta = clamp((f - fLast - 40) / 30);",
     ],
+    [
+      "ov.classList.add('active');\n    const g = $('cutscene-canvas').getContext('2d');",
+      "const g = X;",
+    ],
+    [
+      "$('cutscene').classList.remove('active');\n    show('game-modal'); dirty = true;",
+      "X.globalAlpha = 1; X.textAlign = 'left'; reset(); openSelect(); dirty = true;",
+    ],
+    [
+      "function draw() {\n    const bi = ",
+      "function draw() {\n    if (typeof cutOn !== 'undefined' && cutOn) return;\n    const bi = ",
+    ],
+    [
+      "if (boss.s !== 'rec') {",
+      "if (boss.s !== 'rec' && boss.s !== 'windup') {",
+    ],
+    [
+      "if (boss.s === 'idle') { boss.atk = pick(); fire(); }\n        else { boss.s = 'idle'; boss.tm = R(60, 110); }",
+      "if (boss.s === 'idle') { boss.atk = pick(); boss.s = 'windup'; boss.tm = 36; }\n        else if (boss.s === 'windup') fire();\n        else { boss.s = 'idle'; boss.tm = R(60, 110); }",
+    ],
+    [
+      "if (stun) for (let i = 0; i < 3; i++) {",
+      "if (boss.s === 'windup') {\n      X.save(); X.globalAlpha = .65 + Math.sin(t * .45) * .35; X.strokeStyle = '#fb923c'; X.lineWidth = 4; X.strokeRect(x - 6, y - 6, w + 12, h + 12);\n      X.fillStyle = '#fff'; X.font = 'bold 22px sans-serif'; X.textAlign = 'center'; X.fillText('!', x + w / 2, y - 14);\n      X.fillStyle = '#fb923c'; X.font = 'bold 10px sans-serif'; X.fillText('ATENÇÃO', x + w / 2, y - 28); X.restore();\n    }\n    if (stun) for (let i = 0; i < 3; i++) {",
+    ],
 
     // ===== ORBES NAS PLATAFORMAS =====
     [
