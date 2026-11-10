@@ -311,11 +311,11 @@
       "function dinoAbility(p) {",
       `const CODES = { 1224: 'carno', 1996: 'brachio', 1322: 'mammoth', 6767: 'tri', 101214: 'spino', 51212514: 'dev' };
   const EXTRA = [
-    { id: 'carno', n: 'Carnotauro', c: '#b91c1c', d: 'Investida (J / 4) causa 50% do dano da espada.' },
+    { id: 'carno', n: 'Carnotauro', c: '#b91c1c', d: 'Investida (J / 4) causa 50% do dano da espada. Recarga 10s.' },
     { id: 'brachio', n: 'Braquiossauro', c: '#4d9a6a', d: 'Alcance da espada bem maior.' },
-    { id: 'mammoth', n: 'Mamute', c: '#8b5e3c', d: '15% de chance de congelar o alvo ao acertar.' },
+    { id: 'mammoth', n: 'Mamute', c: '#8b5e3c', d: '2,5% de chance de congelar o alvo por 3s ao acertar.' },
     { id: 'tri', n: 'Triceratops', c: '#a3a05a', d: 'Ao cair no chão: dano em área (15% da espada) e nuvem de poeira. Recarga 50s.' },
-    { id: 'spino', n: 'Espinossauro', c: '#6b7280', d: 'Lança um projétil de água (O / 8).' },
+    { id: 'spino', n: 'Espinossauro', c: '#6b7280', d: 'Lança um projétil de água (O / 8). Recarga 10s.' },
     { id: 'dev', n: 'Dino Dev', c: '#facc15', d: 'Vida e dano infinitos e todas as habilidades.' },
   ];
   const ADAM = new Image(); ADAM.src = 'img/adam-sandler.png';
@@ -339,7 +339,7 @@
   }
 
   function triLand(p) {
-    p.abCd = 1800; lastHit = p;
+    p.abCd = 600; lastHit = p;
     if (boss && Math.abs(boss.x + boss.w / 2 - p.x) < 170) {
       const d = damageBoss(.15 * (p.weapon === null ? 1 : 1.6));
       p.pts += Math.ceil(d * 2); boss.flash = 6;
@@ -359,7 +359,7 @@
 
     ["const sh = has(p, 'rex'), ec = has(p, 'para');", "const sh = has(p, 'rex'), ec = has(p, 'para'), wa = has(p, 'spino');"],
     ["!(sh || ec)) return;", "!(sh || ec || wa)) return;"],
-    ["p.abCd = sh ? 3000 : 900; lastHit = p;", "p.abCd = 1800; lastHit = p;"],
+    ["p.abCd = sh ? 3000 : 900; lastHit = p;", "p.abCd = 600; lastHit = p;"],
     [
       "say(sh && ec ? 'Onda de choque + Eco!' : sh ? 'Onda de choque!' : 'Eco paralisante!');",
       "if (wa) proj.push({ x: p.x + p.face * 18, y: p.y - 40, w: 26, h: 26, vx: p.face * 9, vy: 0, c: '#38bdf8', kind: 'tide', life: 120, friendly: true, shock: true, owner: p, power: { damage: 2 } });\n    say(wa && !sh && !ec ? 'Jato de água!' : sh && ec ? 'Onda de choque + Eco!' : sh ? 'Onda de choque!' : 'Eco paralisante!');",
@@ -379,7 +379,7 @@
     ],
     [
       "if (swordOf(p)?.id === 'blood') recoverLife(p, damage);",
-      "if (has(p, 'mammoth') && boss && Math.random() < .15) { boss.freeze = 180; boss.s = 'idle'; boss.atk = null; boss.tm = 70; say('Congelou!'); }\n    if (swordOf(p)?.id === 'blood') recoverLife(p, damage);",
+      "if (has(p, 'mammoth') && boss && Math.random() < .025) { boss.freeze = 180; boss.s = 'idle'; boss.atk = null; boss.tm = 70; say('Congelou!'); }\n    if (swordOf(p)?.id === 'blood') recoverLife(p, damage);",
     ],
     [
       "p.y = landingY; p.vy = 0; p.grounded = true; p.jumps = 0;",
@@ -510,29 +510,29 @@
     ],
     [
       "if (act('dash', keys) && canDash(p)) { p.dash = 14; p.dcd = 70; p.en -= 20; }",
-      "if (act('dash', keys) && canDash(p)) { p.dash = 14; p.dcd = p.type === 'carno' ? 1800 : 70; p.en -= 20; }",
+      "if (act('dash', keys) && canDash(p)) { p.dash = 14; p.dcd = p.type === 'carno' ? 600 : 70; p.en -= 20; }",
     ],
     [
       "if (K.dash.includes(e.code) && canDash(P)) { P.dash = 14; P.dcd = 70; P.en -= 20; }",
-      "if (K.dash.includes(e.code) && canDash(P)) { P.dash = 14; P.dcd = P.type === 'carno' ? 1800 : 70; P.en -= 20; }",
+      "if (K.dash.includes(e.code) && canDash(P)) { P.dash = 14; P.dcd = P.type === 'carno' ? 600 : 70; P.en -= 20; }",
     ],
     [
       "if (K2.dash.includes(e.code) && canDash(P2)) { P2.dash = 14; P2.dcd = 70; P2.en -= 20; }",
-      "if (K2.dash.includes(e.code) && canDash(P2)) { P2.dash = 14; P2.dcd = P2.type === 'carno' ? 1800 : 70; P2.en -= 20; }",
+      "if (K2.dash.includes(e.code) && canDash(P2)) { P2.dash = 14; P2.dcd = P2.type === 'carno' ? 600 : 70; P2.en -= 20; }",
     ],
-    ["Recarga 50s.", "Recarga 30s."],
+    ["Recarga 50s.", "Recarga 10s."],
     [
       "Ao cair no chão: dano em área (15% da espada) e nuvem de poeira. Recarga 50s.",
-      "Ao cair no chão: dano em área (15% da espada) e nuvem de poeira. Recarga 30s.",
+      "Ao cair no chão: dano em área (15% da espada) e nuvem de poeira. Recarga 10s.",
     ],
-    ["Recarga 15s.", "Recarga 30s."],
+    ["Recarga 15s.", "Recarga 10s."],
     [
       "Investida (J / 4) causa 50% do dano da espada.",
-      "Investida (J / 4) causa 50% do dano da espada. Recarga 30s.",
+      "Investida (J / 4) causa 50% do dano da espada. Recarga 10s.",
     ],
     [
       "Lança um projétil de água (O / 8).",
-      "Lança um projétil de água (O / 8). Recarga 30s.",
+      "Lança um projétil de água (O / 8). Recarga 10s.",
     ],
   ];
 
