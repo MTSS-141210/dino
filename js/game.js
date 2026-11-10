@@ -97,10 +97,6 @@
       "SPR.bat = SPR.caveBat;\n  SPR.waterPuddle = (w, h) => { X.fillStyle = 'rgba(2,132,199,.55)'; X.beginPath(); X.ellipse(w / 2, h - 4, w / 2, 4, 0, 0, 7); X.fill(); X.strokeStyle = 'rgba(186,230,253,.8)'; X.lineWidth = 2; X.beginPath(); X.moveTo(w * .25, h - 5); X.quadraticCurveTo(w * .5, h - 8, w * .72, h - 5); X.stroke(); };",
     ],
     [
-      "p.vy += .7 + (cr && p.y < GY ? .9 : 0); p.y += p.vy;",
-      "p.vy = has(p, 'ptero') && p.vy > 0 ? Math.min(p.vy + .7, 3) : p.vy + .7 + (cr && p.y < GY ? .9 : 0); p.y += p.vy;",
-    ],
-    [
       "p.y = landingY; p.vy = 0; p.grounded = true;",
       "p.y = landingY; p.vy = 0; p.grounded = true; p.jumps = 0;",
     ],
@@ -192,7 +188,7 @@
     ],
     [
       "if (canDash(p)) {",
-      "if (has(p, 'rex') || has(p, 'para')) { X.fillStyle = p.abCd <= 0 ? '#fde047' : '#9ca3af'; X.font = 'bold 9px sans-serif'; otext(p.abCd <= 0 ? `HABILIDADE PRONTA (${p === P ? 'O' : '8'})` : `HABILIDADE ${Math.ceil(p.abCd / 60)}s`, x, 109); }\n      if (canDash(p)) {",
+      "if (has(p, 'rex') || has(p, 'para')) { X.fillStyle = p.abCd <= 0 ? '#fde047' : '#9ca3af'; X.font = 'bold 9px sans-serif'; otext(p.abCd <= 0 ? `HABILIDADE PRONTA (${p === P ? 'O' : '8'})` : `HABILIDADE ${Math.ceil(p.abCd / 60)}s`, x, 109); }\n      if (has(p, 'carno')) { X.fillStyle = p.dcd <= 0 ? '#fde047' : '#9ca3af'; X.font = 'bold 9px sans-serif'; otext(p.dcd <= 0 ? 'INVESTIDA PRONTA' : `INVESTIDA ${Math.ceil(p.dcd / 60)}s`, x, 121); }\n      if (canDash(p)) {",
     ],
     [
       "SPR.bat = SPR.caveBat;",
@@ -200,7 +196,7 @@
     ],
     [
       "reset(); requestAnimationFrame(loop);",
-      "const DINOS = [\n    { id: 'rex', n: 'Tiranossauro', c: '#2f9e44', d: 'Onda de choque no chão (O / 8). Recarga 50s.' },\n          { id: 'ptero', n: 'Pterodáctilo', c: '#9a6fd1', d: 'Pulo duplo e queda lenta (passivas).' },\n    { id: 'raptor', n: 'Velociraptor', c: '#6b93b1', d: 'Velocidade extra (passiva).' },\n    { id: 'anky', n: 'Anquilossauro', c: '#3f72c9', d: 'Defesa extra: -25% de dano (passiva).' },\n    { id: 'para', n: 'Parassauro', c: '#f2c230', d: 'Eco que paralisa por 1s (O / 8). Recarga 15s.' },\n  ];\n  const SPINO = { id: 'spino', n: 'Espinossauro', c: '#6b7280', d: 'Secreto: todas as habilidades!' };\n  const has = (p, k) => p.type === k || p.type === 'spino';\n  const colorOf = p => (p.type === 'spino' ? SPINO : (DINOS.find(d => d.id === p.type) || DINOS[0])).c;\n  const pScore = p => Math.floor(dist / 10) + p.pts;\n  const mixc = (a, b, k) => { const q = hx => [1, 3, 5].map(i => parseInt(hx.slice(i, i + 2), 16)); const A = q(a), B = q(b); return `rgb(${A.map((v, i) => Math.round(v + (B[i] - v) * k)).join(',')})`; };\n\n  const tryJump = p => {\n    if (p.hp <= 0) return;\n    if (p.grounded) { p.vy = -14; p.grounded = false; p.jumps = 1; habit.j++; }\n    else if (has(p, 'ptero') && p.jumps < 2) { p.vy = -13; p.jumps = 2; habit.j++; puff(p.x, p.y - 10, 6, '#e9d5ff'); }\n  };\n\n  function dinoAbility(p) {\n    const sh = has(p, 'rex'), ec = has(p, 'para');\n    if (p.hp <= 0 || p.abCd > 0 || !(sh || ec)) return;\n    p.abCd = sh ? 3000 : 900; lastHit = p;\n    if (sh) {\n      [-1, 1].forEach(d => proj.push({ x: p.x - 22, y: GY - 22, w: 44, h: 22, vx: d * 7, vy: 0, c: '#fbbf24', kind: 'shock', life: 110, friendly: true, shock: true, owner: p, power: { damage: 3 } }));\n      shake = Math.max(shake, 10);\n    }\n    if (ec) {\n      if (boss) { boss.freeze = Math.max(boss.freeze, 60); boss.s = 'idle'; boss.atk = null; boss.tm = 70; }\n      obs.forEach(o => { if (o.creature) o.para = 60; });\n      puff(p.x, p.y - 30, 24, '#22d3ee', { s: 2.5, g: 0 });\n    }\n    say(sh && ec ? 'Onda de choque + Eco!' : sh ? 'Onda de choque!' : 'Eco paralisante!');\n  }\n\n  function secretMissions(victory) {\n    const el = $('secret-msg'), out = [];\n    if (victory) {\n      S.won = 1; save();\n      if (startBiome === 0 && !devMode) {\n        if (spawnedCr > 0 && kills >= spawnedCr && bk >= 9) out.push('Alanzoka é você ❓');\n        if (kills === 0 && !tookDmg) out.push('Conquista pacifista ☮️');\n        if (t < 54000) out.push('SpeedRunners ⚡');\n      }\n    }\n    el.innerHTML = out.map(x => `<div class=\"secret\">${x}<\/div>`).join('');\n    el.hidden = !out.length;\n  }\n\n  // ---------- Tela de seleção ----------\n  const EX = {\n    rex: '<path d=\"M34 38l8 10M46 34l8 10\" stroke=\"#0008\" stroke-width=\"5\"/>',\n    ptero: '<path d=\"M40 34L6 6 28 42z\" fill=\"currentColor\" stroke=\"#000\" stroke-width=\"3\"/><path d=\"M72 40L98 12 94 54z\" fill=\"currentColor\" stroke=\"#000\" stroke-width=\"3\"/>',\n    raptor: '<path d=\"M30 40l24 8M34 54l24 8\" stroke=\"#0009\" stroke-width=\"4\"/>',\n    anky: '<circle cx=\"34\" cy=\"38\" r=\"6\" fill=\"#d7ccc8\" stroke=\"#000\"/><circle cx=\"52\" cy=\"34\" r=\"6\" fill=\"#d7ccc8\" stroke=\"#000\"/><circle cx=\"70\" cy=\"38\" r=\"5\" fill=\"#d7ccc8\" stroke=\"#000\"/>',\n    para: '<path d=\"M42 34Q0 18 4 58L26 46z\" fill=\"currentColor\" stroke=\"#000\" stroke-width=\"3\"/>',\n    spino: '<path d=\"M22 42L28 6 42 30 54 2 66 28 80 8 78 42z\" fill=\"#d9572b\" stroke=\"#000\" stroke-width=\"3\"/>',\n  };\n  const portrait = d => `<svg viewBox=\"0 0 100 100\" style=\"color:${d.c}\">${EX[d.id] || ''}<path d=\"M10 72Q8 40 40 32Q76 24 92 54L88 80Q50 90 10 72Z\" fill=\"currentColor\" stroke=\"#000\" stroke-width=\"3\"/><path d=\"M26 76l4-9 4 9M42 80l4-9 4 9M58 79l4-9 4 9\" fill=\"#fff\"/><circle cx=\"64\" cy=\"48\" r=\"7\" fill=\"#fde047\" stroke=\"#000\"/><circle cx=\"66\" cy=\"48\" r=\"3\"/><\/svg>`;\n\n  let steps = [], si = 0;\n  const curId = () => steps[si] === 'p1' ? choice[0] : steps[si] === 'p2' ? choice[1] : startBiome;\n  function renderSelect() {\n    const k = steps[si], g = $('select-grid'); g.innerHTML = '';\n    $('select-info').textContent = '';\n    $('select-title').textContent = k === 'map' ? 'Escolha o mapa' : `Escolha seu dino · Jogador ${k === 'p1' ? 1 : 2}`;\n    const items = k === 'map' ? BIOMES.map((b, i) => ({ id: i, n: b.n, sky: b.sky, d: 'Mapa: ' + b.n })) : [...DINOS, ...(S.spino ? [SPINO] : [])];\n    items.forEach(d => {\n      const b = document.createElement('button'); b.type = 'button';\n      b.className = 'select-card' + (d.id === curId() ? ' sel' : '');\n      b.innerHTML = (d.sky ? `<span class=\"sc-face\" style=\"background:linear-gradient(${d.sky[0]},${d.sky[1]})\"><\/span>` : '<canvas width=\"120\" height=\"100\"><\/canvas>') + `<b>${d.n}<\/b>`;\n      b.onclick = () => { if (k === 'p1') choice[0] = d.id; else if (k === 'p2') choice[1] = d.id; else startBiome = d.id; renderSelect(); $('select-info').textContent = d.d; };\n      const cv = b.querySelector('canvas'); if (cv) { const c2d = cv.getContext('2d'); c2d.translate(60, 92); c2d.scale(1.25, 1.25); drawDinoShape(c2d, d.id, d.c, 0, 0, false); } g.appendChild(b);\n    });\n    $('select-ok').textContent = si < steps.length - 1 ? 'Próximo' : 'Jogar';\n  }\n  function openSelect() {\n    steps = ['p1', ...(twoPlayer ? ['p2'] : []), ...(S.won ? ['map'] : [])]; si = 0; startBiome = 0;\n    $('select-msg').textContent = ''; renderSelect(); show('select-modal'); dirty = true;\n  }\n  $('select-ok').onclick = () => {\n    if (si < steps.length - 1) { si++; renderSelect(); return; }\n    hide('select-modal'); reset(); st = 'ready'; $('dino-hint').classList.remove('hide');\n  };\n  $('select-code').addEventListener('input', e => {\n    const v = e.target.value.trim(), m = $('select-msg');\n    if (v === UNLOCK_CODE) { S.spino = 1; save(); m.textContent = 'Espinossauro desbloqueado!'; e.target.value = ''; renderSelect(); }\n    else if (v === DEV_PASSWORD) { devMode = true; m.textContent = 'Vida e dano infinitos ativados!'; e.target.value = ''; }\n    else if (v.length >= 6) m.textContent = 'Código inválido.';\n  });\n\n  reset(); openSelect(); requestAnimationFrame(loop);",
+      "const DINOS = [\n    { id: 'rex', n: 'Tiranossauro', c: '#2f9e44', d: 'Onda de choque no chão (O / 8). Recarga 50s.' },\n                { id: 'ptero', n: 'Pterodáctilo', c: '#9a6fd1', d: 'Pulo duplo (passiva).' },\n    { id: 'raptor', n: 'Velociraptor', c: '#6b93b1', d: 'Velocidade extra (passiva).' },\n    { id: 'anky', n: 'Anquilossauro', c: '#3f72c9', d: 'Defesa extra: -25% de dano (passiva).' },\n    { id: 'para', n: 'Parassauro', c: '#f2c230', d: 'Eco que paralisa por 1s (O / 8). Recarga 15s.' },\n  ];\n  const SPINO = { id: 'spino', n: 'Espinossauro', c: '#6b7280', d: 'Secreto: todas as habilidades!' };\n  const has = (p, k) => p.type === k || p.type === 'spino';\n  const colorOf = p => (p.type === 'spino' ? SPINO : (DINOS.find(d => d.id === p.type) || DINOS[0])).c;\n  const pScore = p => Math.floor(dist / 10) + p.pts;\n  const mixc = (a, b, k) => { const q = hx => [1, 3, 5].map(i => parseInt(hx.slice(i, i + 2), 16)); const A = q(a), B = q(b); return `rgb(${A.map((v, i) => Math.round(v + (B[i] - v) * k)).join(',')})`; };\n\n  const tryJump = p => {\n    if (p.hp <= 0) return;\n    if (p.grounded) { p.vy = -14; p.grounded = false; p.jumps = 1; habit.j++; }\n    else if (has(p, 'ptero') && p.jumps < 2) { p.vy = -13; p.jumps = 2; habit.j++; puff(p.x, p.y - 10, 6, '#e9d5ff'); }\n  };\n\n  function dinoAbility(p) {\n    const sh = has(p, 'rex'), ec = has(p, 'para');\n    if (p.hp <= 0 || p.abCd > 0 || !(sh || ec)) return;\n    p.abCd = sh ? 3000 : 900; lastHit = p;\n    if (sh) {\n      [-1, 1].forEach(d => proj.push({ x: p.x - 22, y: GY - 22, w: 44, h: 22, vx: d * 7, vy: 0, c: '#fbbf24', kind: 'shock', life: 110, friendly: true, shock: true, owner: p, power: { damage: 3 } }));\n      shake = Math.max(shake, 10);\n    }\n    if (ec) {\n      if (boss) { boss.freeze = Math.max(boss.freeze, 60); boss.s = 'idle'; boss.atk = null; boss.tm = 70; }\n      obs.forEach(o => { if (o.creature) o.para = 60; });\n      puff(p.x, p.y - 30, 24, '#22d3ee', { s: 2.5, g: 0 });\n    }\n    say(sh && ec ? 'Onda de choque + Eco!' : sh ? 'Onda de choque!' : 'Eco paralisante!');\n  }\n\n  function secretMissions(victory) {\n    const el = $('secret-msg'), out = [];\n    if (victory) {\n      S.won = 1; save();\n      if (startBiome === 0 && !devMode) {\n        if (spawnedCr > 0 && kills >= spawnedCr && bk >= 9) out.push('Alanzoka é você ❓');\n        if (kills === 0 && !tookDmg) out.push('Conquista pacifista ☮️');\n        if (t < 54000) out.push('SpeedRunners ⚡');\n      }\n    }\n    el.innerHTML = out.map(x => `<div class=\"secret\">${x}<\/div>`).join('');\n    el.hidden = !out.length;\n  }\n\n  // ---------- Tela de seleção ----------\n  const EX = {\n    rex: '<path d=\"M34 38l8 10M46 34l8 10\" stroke=\"#0008\" stroke-width=\"5\"/>',\n    ptero: '<path d=\"M40 34L6 6 28 42z\" fill=\"currentColor\" stroke=\"#000\" stroke-width=\"3\"/><path d=\"M72 40L98 12 94 54z\" fill=\"currentColor\" stroke=\"#000\" stroke-width=\"3\"/>',\n    raptor: '<path d=\"M30 40l24 8M34 54l24 8\" stroke=\"#0009\" stroke-width=\"4\"/>',\n    anky: '<circle cx=\"34\" cy=\"38\" r=\"6\" fill=\"#d7ccc8\" stroke=\"#000\"/><circle cx=\"52\" cy=\"34\" r=\"6\" fill=\"#d7ccc8\" stroke=\"#000\"/><circle cx=\"70\" cy=\"38\" r=\"5\" fill=\"#d7ccc8\" stroke=\"#000\"/>',\n    para: '<path d=\"M42 34Q0 18 4 58L26 46z\" fill=\"currentColor\" stroke=\"#000\" stroke-width=\"3\"/>',\n    spino: '<path d=\"M22 42L28 6 42 30 54 2 66 28 80 8 78 42z\" fill=\"#d9572b\" stroke=\"#000\" stroke-width=\"3\"/>',\n  };\n  const portrait = d => `<svg viewBox=\"0 0 100 100\" style=\"color:${d.c}\">${EX[d.id] || ''}<path d=\"M10 72Q8 40 40 32Q76 24 92 54L88 80Q50 90 10 72Z\" fill=\"currentColor\" stroke=\"#000\" stroke-width=\"3\"/><path d=\"M26 76l4-9 4 9M42 80l4-9 4 9M58 79l4-9 4 9\" fill=\"#fff\"/><circle cx=\"64\" cy=\"48\" r=\"7\" fill=\"#fde047\" stroke=\"#000\"/><circle cx=\"66\" cy=\"48\" r=\"3\"/><\/svg>`;\n\n  let steps = [], si = 0;\n  const curId = () => steps[si] === 'p1' ? choice[0] : steps[si] === 'p2' ? choice[1] : startBiome;\n  function renderSelect() {\n    const k = steps[si], g = $('select-grid'); g.innerHTML = '';\n    $('select-info').textContent = '';\n    $('select-title').textContent = k === 'map' ? 'Escolha o mapa' : `Escolha seu dino · Jogador ${k === 'p1' ? 1 : 2}`;\n    const items = k === 'map' ? BIOMES.map((b, i) => ({ id: i, n: b.n, sky: b.sky, d: 'Mapa: ' + b.n })) : [...DINOS, ...(S.spino ? [SPINO] : [])];\n    items.forEach(d => {\n      const b = document.createElement('button'); b.type = 'button';\n      b.className = 'select-card' + (d.id === curId() ? ' sel' : '');\n      b.innerHTML = (d.sky ? `<span class=\"sc-face\" style=\"background:linear-gradient(${d.sky[0]},${d.sky[1]})\"><\/span>` : '<canvas width=\"120\" height=\"100\"><\/canvas>') + `<b>${d.n}<\/b>`;\n      b.onclick = () => { if (k === 'p1') choice[0] = d.id; else if (k === 'p2') choice[1] = d.id; else startBiome = d.id; renderSelect(); $('select-info').textContent = d.d; };\n      const cv = b.querySelector('canvas'); if (cv) { const c2d = cv.getContext('2d'); c2d.translate(60, 92); c2d.scale(1.25, 1.25); drawDinoShape(c2d, d.id, d.c, 0, 0, false); } g.appendChild(b);\n    });\n    $('select-ok').textContent = si < steps.length - 1 ? 'Próximo' : 'Jogar';\n  }\n  function openSelect() {\n    steps = ['p1', ...(twoPlayer ? ['p2'] : []), ...(S.won ? ['map'] : [])]; si = 0; startBiome = 0;\n    $('select-msg').textContent = ''; renderSelect(); show('select-modal'); dirty = true;\n  }\n  $('select-ok').onclick = () => {\n    if (si < steps.length - 1) { si++; renderSelect(); return; }\n    hide('select-modal'); reset(); st = 'ready'; $('dino-hint').classList.remove('hide');\n  };\n  $('select-code').addEventListener('input', e => {\n    const v = e.target.value.trim(), m = $('select-msg');\n    if (v === UNLOCK_CODE) { S.spino = 1; save(); m.textContent = 'Espinossauro desbloqueado!'; e.target.value = ''; renderSelect(); }\n    else if (v === DEV_PASSWORD) { devMode = true; m.textContent = 'Vida e dano infinitos ativados!'; e.target.value = ''; }\n    else if (v.length >= 6) m.textContent = 'Código inválido.';\n  });\n\n  reset(); openSelect(); requestAnimationFrame(loop);",
     ],
     [
       "function drawDino(p, color = '#2e7d32') {",
@@ -343,7 +339,7 @@
   }
 
   function triLand(p) {
-    p.abCd = p.type === 'dev' ? 45 : 3000; lastHit = p;
+    p.abCd = 1800; lastHit = p;
     if (boss && Math.abs(boss.x + boss.w / 2 - p.x) < 170) {
       const d = damageBoss(.15 * (p.weapon === null ? 1 : 1.6));
       p.pts += Math.ceil(d * 2); boss.flash = 6;
@@ -363,7 +359,7 @@
 
     ["const sh = has(p, 'rex'), ec = has(p, 'para');", "const sh = has(p, 'rex'), ec = has(p, 'para'), wa = has(p, 'spino');"],
     ["!(sh || ec)) return;", "!(sh || ec || wa)) return;"],
-    ["p.abCd = sh ? 3000 : 900; lastHit = p;", "p.abCd = p.type === 'dev' ? 45 : sh ? 3000 : wa ? 150 : 900; lastHit = p;"],
+    ["p.abCd = sh ? 3000 : 900; lastHit = p;", "p.abCd = 1800; lastHit = p;"],
     [
       "say(sh && ec ? 'Onda de choque + Eco!' : sh ? 'Onda de choque!' : 'Eco paralisante!');",
       "if (wa) proj.push({ x: p.x + p.face * 18, y: p.y - 40, w: 26, h: 26, vx: p.face * 9, vy: 0, c: '#38bdf8', kind: 'tide', life: 120, friendly: true, shock: true, owner: p, power: { damage: 2 } });\n    say(wa && !sh && !ec ? 'Jato de água!' : sh && ec ? 'Onda de choque + Eco!' : sh ? 'Onda de choque!' : 'Eco paralisante!');",
@@ -372,7 +368,7 @@
     ["if (has(p, 'rex') || has(p, 'para')) {", "if (has(p, 'rex') || has(p, 'para') || has(p, 'spino') || has(p, 'tri')) {"],
     [
       "`HABILIDADE PRONTA (${p === P ? 'O' : '8'})`",
-      "(p.type === 'tri' ? 'POEIRA PRONTA (AO CAIR)' : `HABILIDADE PRONTA (${p === P ? 'O' : '8'})`)",
+      "p.type === 'tri' ? (p.abCd <= 0 ? 'POEIRA PRONTA (AO CAIR)' : `POEIRA ${Math.ceil(p.abCd / 60)}s`) : p.abCd <= 0 ? `HABILIDADE PRONTA (${p === P ? 'O' : '8'})` : `HABILIDADE ${Math.ceil(p.abCd / 60)}s`",
     ],
 
     ["if (p.dash > 0) { p.dash--; p.x += p.face * 8;", "if (p.dash > 0) { p.dash--; if (p.dash === 13) p.dashHit = 0; carnoHit(p); p.x += p.face * 8;"],
@@ -427,6 +423,116 @@
     [
       "p.en = Math.max(0, p.en - 10); p.inv = 10;",
       "p.en = Math.max(0, p.en - (perfect ? 0 : 8)); p.inv = perfect ? 40 : 10; if (perfect) say('Bloqueio perfeito!');",
+    ],
+
+    ["id: 'carno', n: 'Carnotauro', c: '#b91c1c'", "id: 'carno', n: 'Carnotauro', c: '#e8793a'"],
+    ["id: 'brachio', n: 'Braquiossauro', c: '#4d9a6a'", "id: 'brachio', n: 'Braquiossauro', c: '#3b82f6'"],
+    ["id: 'mammoth', n: 'Mamute', c: '#8b5e3c'", "id: 'mammoth', n: 'Mamute', c: '#8b4a1f'"],
+    ["id: 'tri', n: 'Triceratops', c: '#a3a05a'", "id: 'tri', n: 'Triceratops', c: '#ec5b7a'"],
+    [
+      "default: // rex",
+      `case 'carno': {
+        const cr = '#fde9b8', hn = '#fff1c9';
+        lowTail(() => poly([[2, -30], [-38, -18 + sw], [-36, -12 + sw], [2, -14]], color));
+        legs2(dk, color, .5);
+        pose(() => {
+          for (let i = 0; i < 5; i++) poly([[-10 + i * 5, -43], [-8 + i * 5, -52], [-5 + i * 5, -43]], dk);
+          el(0, -30, 17, 15, color); el(5, -25, 10, 10, cr);
+          poly([[2, -44], [10, -52], [34, -53], [40, -46], [37, -40], [12, -37], [4, -40]], color);
+          poly([[12, -38], [37, -41], [33, -34], [14, -33]], dk); teeth(16, -41, 5, 3.5);
+          poly([[16, -52], [14, -63], [22, -53]], hn); poly([[26, -53], [27, -64], [33, -52]], hn);
+          eye(24, -47, 3);
+          poly([[9, -30], [17, -26], [16, -23], [9, -25]], color);
+        }, .92);
+        break; }
+      case 'brachio': {
+        const sp = mixc(color, '#000000', .3);
+        lowTail(() => poly([[-6, -26], [-36, -14 + sw], [-34, -9 + sw], [-6, -14]], color));
+        if (duck) bent(dk, color);
+        else {
+          poly([[-13, -18], [-3, -18], [-3 + L * .4, 0], [-13 + L * .4, 0]], dk);
+          poly([[4, -18], [14, -18], [14 - L * .4, 0], [4 - L * .4, 0]], color);
+          el(-8 + L * .4, -1, 6, 2.5, '#f5efd9'); el(9 - L * .4, -1, 6, 2.5, '#f5efd9');
+        }
+        pose(() => {
+          el(0, -28, 19, 13, color); el(3, -24, 13, 7, lt);
+          [[-8, -32], [0, -35], [8, -31], [-3, -26]].forEach(([x, y]) => el(x, y, 3, 2.2, sp));
+          poly([[8, -34], [22, -36], [30, -58], [22, -59]], color);
+          poly([[16, -36], [22, -36], [28, -56], [25, -56]], lt);
+          el(30, -62, 8, 6, color); poly([[34, -64], [42, -60], [41, -56], [33, -57]], color);
+          eye(31, -64, 2.8);
+        }, 1);
+        break; }
+      case 'mammoth': {
+        const fur = mixc(color, '#000000', .28), tusk = '#fff3d6';
+        if (duck) bent(fur, color);
+        else {
+          poly([[-13, -20], [-1, -20], [L * .4, 0], [-13 + L * .4, 0]], fur);
+          poly([[4, -20], [16, -20], [16 - L * .4, 0], [4 - L * .4, 0]], color);
+          el(-6 + L * .4, -1, 6, 2.5, '#ece3c8'); el(10 - L * .4, -1, 6, 2.5, '#ece3c8');
+        }
+        lowTail(() => poly([[-14, -34], [-26, -24 + sw], [-22, -21 + sw], [-12, -28]], fur));
+        pose(() => {
+          el(-2, -32, 20, 16, color);
+          for (let i = 0; i < 6; i++) poly([[-16 + i * 6, -21], [-13 + i * 6, -13], [-10 + i * 6, -21]], fur);
+          el(18, -38, 10, 11, color);
+          poly([[9, -50], [18, -56], [27, -50], [20, -45]], fur);
+          el(12, -39, 4, 6, fur);
+          poly([[24, -44], [30, -37], [31, -24], [27, -22], [26, -34], [22, -38]], color);
+          line([[22, -30], [33, -26], [39, -33]], tusk, 3.5);
+          eye(21, -42, 2.4);
+        }, .95);
+        break; }
+      case 'tri': {
+        const fr = mixc(color, '#ffffff', .22), hn = '#f5e6a8';
+        lowTail(() => poly([[2, -26], [-36, -12 + sw], [-34, -7 + sw], [2, -12]], color));
+        legs2(dk, color, .5);
+        pose(() => {
+          el(0, -28, 17, 13, color); el(5, -24, 10, 7, lt);
+          [[-8, -31], [2, -35], [-3, -24]].forEach(([x, y]) => el(x, y, 2.6, 2.2, dk));
+          el(15, -42, 13, 15, dk); el(15, -42, 11, 13, fr);
+          for (let i = 0; i < 5; i++) { const a = Math.PI * (.62 + i * .19); el(15 + Math.cos(a) * 12, -42 + Math.sin(a) * 14, 2, 2, hn); }
+          poly([[18, -44], [28, -47], [40, -40], [40, -34], [22, -32], [16, -36]], color);
+          poly([[24, -46], [28, -57], [31, -46]], hn); poly([[31, -45], [36, -53], [37, -43]], hn);
+          poly([[38, -40], [45, -42], [41, -35]], hn);
+          eye(27, -41, 2.8);
+        }, .95);
+        break; }
+      default: // rex`,
+    ],
+    [
+      "X.drawImage(ADAM, -24, -64, 48, 64)",
+      "X.drawImage(ADAM, -22, d ? -46 : -66, 44, d ? 46 : 66)",
+    ],
+    [
+      "const swd = swordOf(p), swing = p.sw > 0;",
+      "X.globalAlpha = _ga; const swd = swordOf(p), swing = p.sw > 0;",
+    ],
+    [
+      "if (act('dash', keys) && canDash(p)) { p.dash = 14; p.dcd = 70; p.en -= 20; }",
+      "if (act('dash', keys) && canDash(p)) { p.dash = 14; p.dcd = p.type === 'carno' ? 1800 : 70; p.en -= 20; }",
+    ],
+    [
+      "if (K.dash.includes(e.code) && canDash(P)) { P.dash = 14; P.dcd = 70; P.en -= 20; }",
+      "if (K.dash.includes(e.code) && canDash(P)) { P.dash = 14; P.dcd = P.type === 'carno' ? 1800 : 70; P.en -= 20; }",
+    ],
+    [
+      "if (K2.dash.includes(e.code) && canDash(P2)) { P2.dash = 14; P2.dcd = 70; P2.en -= 20; }",
+      "if (K2.dash.includes(e.code) && canDash(P2)) { P2.dash = 14; P2.dcd = P2.type === 'carno' ? 1800 : 70; P2.en -= 20; }",
+    ],
+    ["Recarga 50s.", "Recarga 30s."],
+    [
+      "Ao cair no chão: dano em área (15% da espada) e nuvem de poeira. Recarga 50s.",
+      "Ao cair no chão: dano em área (15% da espada) e nuvem de poeira. Recarga 30s.",
+    ],
+    ["Recarga 15s.", "Recarga 30s."],
+    [
+      "Investida (J / 4) causa 50% do dano da espada.",
+      "Investida (J / 4) causa 50% do dano da espada. Recarga 30s.",
+    ],
+    [
+      "Lança um projétil de água (O / 8).",
+      "Lança um projétil de água (O / 8). Recarga 30s.",
     ],
   ];
 
